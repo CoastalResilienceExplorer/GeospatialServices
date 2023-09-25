@@ -19,7 +19,7 @@ steps:
     '--image', '$GEOPMAKER_IMAGE', 
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
-    '--service-account', 'geoparquet-maker@global-mangroves.iam.gserviceaccount.com',
+    '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com',
     '--cpu', '4',
     '--memory', '16G',
     '--timeout', '3600'
@@ -29,10 +29,10 @@ steps:
     '${GEOPMAKER_SERVICE_FRONT}', 
     '--image', '$GEOPMAKER_IMAGE', 
     '--set-env-vars', 'FORWARD_SERVICE=$(gcloud run services describe $GEOPMAKER_SERVICE --platform managed --region us-west1 --format 'value(status.url)')',
-    '--set-env-vars', 'FORWARD_PATH=/build_GEOP/',
+    '--set-env-vars', 'FORWARD_PATH=/build_geoparquet/',
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
-    '--service-account', 'geoparquet-maker@global-mangroves.iam.gserviceaccount.com'
+    '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com'
     ]
 images:
 # - $BASE_IMAGE

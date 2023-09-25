@@ -50,6 +50,11 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
     # The ID of your GCS object
     # destination_blob_name = "storage-object-name"
 
+    logging.info(
+        "Uploading file %s to bucket %s as %s.",
+        source_file_name, bucket_name, destination_blob_name
+    )
+
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
@@ -61,7 +66,7 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
     # If the destination object already exists in your bucket, set instead a
     # generation-match precondition using its generation number.
     # generation_match_precondition = 0
-
+    logging.info("Uploading.")
     blob.upload_from_filename(
         source_file_name,
         # if_generation_match=generation_match_precondition
@@ -82,18 +87,22 @@ def build_geoparquet():
     tmp_id = str(uuid.uuid1())
     _, extension = os.path.splitext(data['name'])
     tmp_file = f'/tmp/{tmp_id}.{extension[1:]}'
-    tmp_parquet = f'/tmp/{tmp_id}_parquet.parquet'
+    tmp_parquet = f'/tmp/{tmp_id}.parquet'
     download_blob(data['bucket'], data['name'], tmp_file)
     try:
+        logging.info('Reading file with geopandas')
         gdf = gpd.read_file(tmp_file)
-        gdf.to_parquet(tmp_parquet, index=False, driver="pyarrow")
-        upload_blob('cloud-native-geospatial/vector', tmp_parquet, data['name'])
+        logging.info('Converting to parquet')
+        gdf.to_parquet(tmp_parquet)
+        logging.info('Updating to GCS')
+        filename = 'vectors/' + os.path.splitext(data['name'])[0] + '.parquet'
+        upload_blob('cloud-native-geospatial', tmp_parquet, filename)
         logging.info('Done')
         return ("Completed", 200)
 
     except Exception as e:
+        logging.error(f"Error encountered: {str(e)}")
         return f"Error: {str(e)}", 500
-
 
 @app.route("/", methods=["POST"])
 def index():
@@ -128,6 +137,7 @@ def index():
             200,
         )
     except Exception as e:
+        logging.error(f"Error encountered: {str(e)}")
         return (
             "Something went wrong, but returning 200 to prevent PubSub infinite retries",
             200,

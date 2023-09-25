@@ -11,4 +11,5 @@ gcloud eventarc triggers create storage-events-trigger-$ENV \
      --destination-run-service=$GEOPARQUET_SERVICE \
      --destination-run-region=us-west1 \
      --event-filters="type=google.cloud.storage.object.v1.finalized" \
+     --event-filters="bucket=test-vector-server" \
      --service-account="geoparquet-maker@global-mangroves.iam.gserviceaccount.com"
