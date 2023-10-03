@@ -132,7 +132,7 @@ def build_cog():
     clipCommand = f'gdalwarp -of GTiff -cutline {hull} -cl {f"{id}_convexhull"} -crop_to_cutline {tmp_dem} {output_dem}'
     print(clipCommand)
     run_bash_command(clipCommand)
-    upload_blob('tiffs-from-mesh', output_dem, f"{data['name'].split('.')[0]}.tiff")
+    upload_blob(os.environ['OUTPUT_BUCKET'], output_dem, f"{data['name'].split('.')[0]}.tiff")
     logging.info('Done')
     return (
         f"Completed",

@@ -2,11 +2,12 @@ ENV=${1:?"Must set environment as first arg"}
 echo $ENV
 
 COGMAKER_SERVICE=${2:?"Must set Cogmaker service"}
+ID=cogmaker
 
-gcloud eventarc triggers delete storage-events-trigger-$ENV \
+gcloud eventarc triggers delete ${ID}-trigger-$ENV \
      --location=us-west1
      
-gcloud eventarc triggers create storage-events-trigger-$ENV \
+gcloud eventarc triggers create ${ID}-trigger-$ENV \
      --location=us-west1 \
      --destination-run-service=$COGMAKER_SERVICE \
      --destination-run-region=us-west1 \

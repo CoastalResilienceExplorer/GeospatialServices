@@ -6,7 +6,11 @@ BASE_IMAGE=${BASE_GAR_DIRECTORY}/base/python_gis_base_${ENV}
 IMAGE=${BASE_GAR_DIRECTORY}/${SERVICE_BASE_NAME}/${SERVICE_BASE_NAME}_${ENV}
 SERVICE=${SERVICE_BASE_NAME}-${ENV}
 SERVICE_FRONT=${SERVICE_BASE_NAME}-front-${ENV}
+INPUT_BUCKET=mesh2tiff-input-${ENV}
+OUTPUT_BUCKET=mesh2tiff-output-${ENV}
 
+gsutil mb -l us-west1 gs://$INPUT_BUCKET
+gsutil mb -l us-west1 gs://$OUTPUT_BUCKET
 
 echo """
 steps:
@@ -22,6 +26,7 @@ steps:
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com',
+    '--set-env-vars', 'OUTPUT_BUCKET=${OUTPUT_BUCKET}',
     '--cpu', '4',
     '--memory', '16G',
     '--timeout', '3600'
@@ -50,8 +55,8 @@ steps:
 gcloud builds submit \
     --config /tmp/cloudbuild.yaml
 
-bash ./eventarc.sh $ENV $SERVICE_FRONT
+bash ./eventarc.sh $ENV $SERVICE_FRONT $INPUT_BUCKET
 
 # Test
-gsutil -m cp ./test/points_as_csv.csv gs://test-xyz-to-tiff/test/points_as_csv.csv
+gsutil -m cp ./test/points_as_csv.csv gs://$OUTPUT_BUCKET/test/points_as_csv.csv
 # TODO, implement a proper test that fails
