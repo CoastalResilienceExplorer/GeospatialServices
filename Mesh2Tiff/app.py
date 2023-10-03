@@ -121,7 +121,7 @@ def build_cog():
     create_vrt(id, tmp, tmp_vrt)
     gdf = gdf_from_points(pd.read_csv(tmp))
     left, bottom, right, top = gdf.total_bounds
-    bashCommand = f'gdal_grid -a linear -txe {math.floor(left)} {math.ceil(right)} -tye {math.floor(bottom)} {math.ceil(top)} -outsize 400 400 -of GTiff -ot Float64 -l {id} {tmp_vrt} {tmp_dem}'
+    bashCommand = f'gdal_grid -a linear -txe {math.floor(left)} {math.ceil(right)} -tye {math.floor(bottom)} {math.ceil(top)} -outsize 400 400 -of COG -ot Float64 -l {id} {tmp_vrt} {tmp_dem}'
     print(bashCommand)
     run_bash_command(bashCommand)
 
@@ -129,7 +129,7 @@ def build_cog():
     hull = f'/tmp/{id}_convexhull.shp'
     output_dem = f'/tmp/{id}_final.tiff'
     convex_hull(gdf).to_file(hull)
-    clipCommand = f'gdalwarp -of GTiff -cutline {hull} -cl {f"{id}_convexhull"} -crop_to_cutline {tmp_dem} {output_dem}'
+    clipCommand = f'gdalwarp -of COG -cutline {hull} -cl {f"{id}_convexhull"} -crop_to_cutline {tmp_dem} {output_dem}'
     print(clipCommand)
     run_bash_command(clipCommand)
     upload_blob(os.environ['OUTPUT_BUCKET'], output_dem, f"{data['name'].split('.')[0]}.tiff")
