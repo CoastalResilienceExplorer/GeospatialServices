@@ -1,7 +1,7 @@
 <OGRVRTDataSource>
     <OGRVRTLayer name="dem">
-        <SrcDataSource>./dem.csv</SrcDataSource>
+        <SrcDataSource>./points_as_csv.csv</SrcDataSource>
         <GeometryType>wkbPoint</GeometryType>
-        <GeometryField encoding="PointFromColumns" x="x" y="y" z="elev"/>
+        <GeometryField encoding="PointFromColumns" x="x" y="y" z="z"/>
     </OGRVRTLayer>
 </OGRVRTDataSource>

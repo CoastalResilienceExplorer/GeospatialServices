@@ -15,6 +15,10 @@ steps:
   entrypoint: 'bash'
   args: ['tools/build_and_submit.sh', '$ENV']
   dir: 'CogServer'
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'bash'
+  args: ['tools/build_and_submit.sh', '$ENV']
+  dir: 'Mesh2Tiff'
 """ > /tmp/cloudbuild.yaml
 
 gcloud builds submit \
