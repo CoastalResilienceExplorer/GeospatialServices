@@ -6,7 +6,8 @@ IMAGE=${BASE_GAR_DIRECTORY}/cogmaker/cogmaker_${ENV}
 SERVICE=cogmaker-${ENV}
 SERVICE_FRONT=cogmaker-front-${ENV}
 INPUT_BUCKET=cogmaker-input-${ENV}
-OUTPUT_BUCKET=cogmaker-output-${ENV}
+# OUTPUT_BUCKET=cogmaker-output-${ENV}
+OUTPUT_BUCKET=cloud-native-geospatial
 
 gsutil mb -l us-west1 gs://$INPUT_BUCKET
 gsutil mb -l us-west1 gs://$OUTPUT_BUCKET

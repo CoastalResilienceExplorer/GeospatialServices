@@ -105,7 +105,7 @@ def create_vrt(id, csv_filename, vrt_filename, x="x", y="y", z="z"):
         f.write(VRT_string)
 
 @app.route("/build_DEM/", methods=["POST"])
-def build_cog():
+def build_dem():
     """Handle tile requests."""
     # event = from_http(request.headers, request.get_data())
     logging.info(request.get_json())
@@ -118,10 +118,12 @@ def build_cog():
     tmp_vrt = f'/tmp/{id}.vrt'
     tmp_dem = f'/tmp/{id}.tiff'
     download_blob(data['bucket'], data['name'], tmp)
-    create_vrt(id, tmp, tmp_vrt)
+    create_vrt(id, tmp, tmp_vrt) 
+    print("Created VRT")
     gdf = gdf_from_points(pd.read_csv(tmp))
     left, bottom, right, top = gdf.total_bounds
-    bashCommand = f'gdal_grid -a linear -txe {math.floor(left)} {math.ceil(right)} -tye {math.floor(bottom)} {math.ceil(top)} -outsize 400 400 -of COG -ot Float64 -l {id} {tmp_vrt} {tmp_dem}'
+    res=0.00001
+    bashCommand = f'gdal_grid -a linear -txe {math.floor(left*10000)/10000.0} {math.ceil(right*10000)/10000.0} -tye {math.floor(bottom*10000)/10000.0} {math.ceil(top*10000)/10000.0} -tr {res} {res} -of GTiff -ot Float32 -l {id} {tmp_vrt} {tmp_dem}'
     print(bashCommand)
     run_bash_command(bashCommand)
 

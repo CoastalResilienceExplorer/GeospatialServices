@@ -58,5 +58,5 @@ gcloud builds submit \
 bash ./eventarc.sh $ENV $SERVICE_FRONT $INPUT_BUCKET
 
 # Test
-gsutil -m cp ./test/points_as_csv.csv gs://$OUTPUT_BUCKET/test/points_as_csv.csv
+gsutil -m cp ./test/test.csv gs://$OUTPUT_BUCKET/test/test.csv
 # TODO, implement a proper test that fails

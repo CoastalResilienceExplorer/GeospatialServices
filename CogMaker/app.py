@@ -93,7 +93,7 @@ def build_cog():
         line = process.stdout.readline()
         if not line: break
         print(line, flush=True)
-    upload_blob('cloud-native-geospatial', tmp_cog, data['name'])
+    upload_blob(os.environ['OUTPUT_BUCKET'], tmp_cog, data['name'])
     logging.info('Done')
     return (
         f"Completed",
