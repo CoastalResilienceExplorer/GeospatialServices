@@ -4,6 +4,7 @@ echo $ENV
 echo """
 steps:
 - name: 'gcr.io/cloud-builders/gcloud'
+  id: base
   entrypoint: 'bash'
   args: ['tools/build_and_submit.sh', '$ENV']
   dir: 'BasePythonImage'
@@ -11,14 +12,20 @@ steps:
   entrypoint: 'bash'
   args: ['tools/build_and_submit.sh', '$ENV']
   dir: 'CogMaker'
+  waitFor: 
+  - base
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'bash'
   args: ['tools/build_and_submit.sh', '$ENV']
   dir: 'CogServer'
+  waitFor: 
+  - base
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'bash'
   args: ['tools/build_and_submit.sh', '$ENV']
   dir: 'Mesh2Tiff'
+  waitFor: 
+  - base
 """ > /tmp/cloudbuild.yaml
 
 gcloud builds submit \
