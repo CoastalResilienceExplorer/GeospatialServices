@@ -2,7 +2,9 @@ ENV=${1:?"Must set environment as first arg"}
 echo $ENV
 SERVICE_BASE_NAME=cogserver
 BASE_GAR_DIRECTORY=us-west1-docker.pkg.dev/global-mangroves
-BASE_IMAGE=${BASE_GAR_DIRECTORY}/base/python_gis_base_${ENV}
+# Currently a bug in rio-tiler -> color-operations
+# BASE_IMAGE=${BASE_GAR_DIRECTORY}/base/python_gis_base_${ENV}
+BASE_IMAGE=us-west1-docker.pkg.dev/global-mangroves/base/python_gis_base_main
 IMAGE=${BASE_GAR_DIRECTORY}/${SERVICE_BASE_NAME}/${SERVICE_BASE_NAME}_${ENV}
 SERVICE=${SERVICE_BASE_NAME}-${ENV}
 
