@@ -122,8 +122,8 @@ def build_dem():
     print("Created VRT")
     gdf = gdf_from_points(pd.read_csv(tmp))
     left, bottom, right, top = gdf.total_bounds
-    res=0.00001
-    bashCommand = f'gdal_grid -a linear -txe {math.floor(left*10000)/10000.0} {math.ceil(right*10000)/10000.0} -tye {math.floor(bottom*10000)/10000.0} {math.ceil(top*10000)/10000.0} -tr {res} {res} -of GTiff -ot Float32 -l {id} {tmp_vrt} {tmp_dem}'
+    res=0.00005
+    bashCommand = f'gdal_grid -a linear:radius=0.001:nodata=-1 -txe {math.floor(left*10000)/10000.0} {math.ceil(right*10000)/10000.0} -tye {math.floor(bottom*10000)/10000.0} {math.ceil(top*10000)/10000.0} -tr {res} {res} -of GTiff -ot Float32 -l {id} {tmp_vrt} {tmp_dem}'
     print(bashCommand)
     run_bash_command(bashCommand)
 
