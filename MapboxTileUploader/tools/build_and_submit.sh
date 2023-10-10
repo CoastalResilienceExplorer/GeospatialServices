@@ -2,21 +2,23 @@ ENV=${1:?"Must set environment as first arg"}
 echo $ENV
 BASE_GAR_DIRECTORY=us-west1-docker.pkg.dev/global-mangroves
 BASE_IMAGE=${BASE_GAR_DIRECTORY}/base/python_gis_base_${ENV}
-GEOPMAKER_IMAGE=${BASE_GAR_DIRECTORY}/geoparquetmaker/geoparquetmaker${ENV}
-GEOPMAKER_SERVICE=geoparquetmaker-${ENV}
-GEOPMAKER_SERVICE_FRONT=geoparquetmaker-front-${ENV}
+VECTORUPLOADER_IMAGE=${BASE_GAR_DIRECTORY}/vectoruploader/vectoruploader_${ENV}
+VECTORUPLOADER_SERVICE=vectoruploader-${ENV}
+VECTORUPLOADER_SERVICE_FRONT=vectoruploader-front-${ENV}
 
 echo """
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--build-arg', 'BASE_IMAGE=$BASE_IMAGE', '-t', '$GEOPMAKER_IMAGE', '.']
+  args: ['build', '--build-arg', 'BASE_IMAGE=$BASE_IMAGE', '-t', '$VECTORUPLOADER_IMAGE', '.']
   dir: '.'
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', '$GEOPMAKER_IMAGE']
+  args: ['push', '$VECTORUPLOADER_IMAGE']
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['run', 'deploy', 
-    '$GEOPMAKER_SERVICE', 
-    '--image', '$GEOPMAKER_IMAGE', 
+    '$VECTORUPLOADER_SERVICE', 
+    '--image', '$VECTORUPLOADER_IMAGE', 
+    '--set-env-vars', 'MAPBOX_ACCESS_TOKEN=<secret>',
+    '--set-env-vars', 'MAPBOX_USERNAME=clowrie',
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com',
@@ -26,23 +28,23 @@ steps:
     ]
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['run', 'deploy', 
-    '${GEOPMAKER_SERVICE_FRONT}', 
-    '--image', '$GEOPMAKER_IMAGE', 
-    '--set-env-vars', 'FORWARD_SERVICE=$(gcloud run services describe $GEOPMAKER_SERVICE --platform managed --region us-west1 --format 'value(status.url)')',
-    '--set-env-vars', 'FORWARD_PATH=/build_geoparquet/',
+    '${VECTORUPLOADER_SERVICE_FRONT}', 
+    '--image', '$VECTORUPLOADER_IMAGE', 
+    '--set-env-vars', 'FORWARD_SERVICE=$(gcloud run services describe $VECTORUPLOADER_SERVICE --platform managed --region us-west1 --format 'value(status.url)')',
+    '--set-env-vars', 'FORWARD_PATH=/mapbox_upload/',
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com'
     ]
 images:
 # - $BASE_IMAGE
-- $GEOPMAKER_IMAGE
+- $VECTORUPLOADER_IMAGE
 """ > /tmp/cloudbuild.yaml
 
 gcloud builds submit \
     --config /tmp/cloudbuild.yaml
 
-bash ./eventarc.sh $ENV $GEOPMAKER_SERVICE_FRONT
+bash ./eventarc.sh $ENV $VECTORUPLOADER_SERVICE_FRONT
 
 # Test
 # TODO, implement a proper test that fails

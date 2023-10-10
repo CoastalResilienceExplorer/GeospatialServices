@@ -48,7 +48,7 @@ def upload_to_map():
     logging.info(type(request.get_json()))
     data = request.get_json()
     tmp_id = str(uuid.uuid1())
-    _, extension = os.path.splitext(data['name'])
+    filename, extension = os.path.splitext(data['name'])
     tmp_parquet = f'/tmp/{tmp_id}.{extension[1:]}'
     download_blob(data['bucket'], data['name'], tmp_parquet)
     try:
@@ -56,50 +56,61 @@ def upload_to_map():
         logging.info('Converting to GeoJSON')
         gdf = gpd.read_parquet(tmp_parquet)
         tmp_geojson = f'/tmp/{tmp_id}.geojson'
-        gdf.to_json(tmp_geojson)
-        
-        
-        # Create a Mapbox tileset source 
+        with open(tmp_geojson, 'w', encoding='utf-8') as f:
+            f.write(gdf.to_json())
+
+        # Create a Mapbox tileset source
         logging.info('Creating a Mapbox tileset source')
-        tileset_source_id = f'{data["bucket"]}.{data["name"]}'
-        tileset_source_url = f'https://api.mapbox.com/tilesets/v1/sources/{tileset_source_id}?access_token={os.environ["MAPBOX_ACCESS_TOKEN"]}'
+        # only alphanumeric characters and underscores are allowed
+        tileset_source_url = f'https://api.mapbox.com/tilesets/v1/sources/{os.environ["MAPBOX_USERNAME"]}/{filename}?access_token={os.environ["MAPBOX_ACCESS_TOKEN"]}'
+        logging.info(tileset_source_url)
         with open(tmp_geojson, "rb") as file:
-            files = {"file": file}
-        r = requests.post(tileset_source_url, headers=headers, files=files)
+            files = {"file": file.read()}
+        headers = {"Content-Type": "multipart/form-data"}
+        req = requests.post(tileset_source_url, files=files, headers=headers, timeout=30)
         
+        logging.info(req.status_code)
+        logging.info(req.text)
+
         # save id from response body
-        tileset_source_id = r.json()["id"]
+        tileset_source_id = req.json()["id"]
 
         # Retrieve the tileset recipe
         logging.info('Retrieving the tileset recipe')
         tileset_recipe_url = f'https://api.mapbox.com/tilesets/v1/{tileset_source_id}?access_token={os.environ["MAPBOX_ACCESS_TOKEN"]}'
-        r = requests.get(tileset_recipe_url)
+        req = requests.get(tileset_recipe_url, timeout=30)
+
+        logging.info(req.status_code)
+        logging.info(req.text)
+
         # save id from response body
-        tileset_recipe = r.json()["recipe"]
+        tileset_recipe = req.json()["recipe"]
         
         # Create a tileset
         logging.info('Creating a tileset')
-        tileset_id = f'{username}.{id}'
+        tileset_id = f'{os.environ["USERNAME"]}.{id}'
         tileset_url = f'https://api.mapbox.com/tilesets/v1/{tileset_id}?access_token={os.environ["MAPBOX_ACCESS_TOKEN"]}'
         tileset_json = {
             "name": tileset_id,
             "recipe": tileset_recipe,
         }
-        r = requests.post(tileset_url, json=tileset_json, headers={ "Content-Type": "application/json" })
-
+        req = requests.post(tileset_url, json=tileset_json, headers={ "Content-Type": "application/json" }, timeout=30)
+        logging.info(req.status_code)
+        logging.info(req.text)
 
         logging.info('Done')
         return ("Completed", 200)
 
-    except Exception as e:
-        logging.error(f"Error encountered: {str(e)}")
-        return f"Error: {str(e)}", 500
+    except Exception as err:
+        logging.error("Error encountered: %s", err)
+        return "Error: %s" % err, 500
+
 
 @app.route("/", methods=["POST"])
 def index():
     """Handle tile requests."""
     def request_task(url, json):
-        requests.post(url, json=json)
+        requests.post(url, json=json, timeout=10)
 
     def fire_and_forget(url, json):
         threading.Thread(target=request_task, args=(url, json)).start()
@@ -127,8 +138,8 @@ def index():
             f"Forwarded to {os.environ['FORWARD_SERVICE']}",
             200,
         )
-    except Exception as e:
-        logging.error(f"Error encountered: {str(e)}")
+    except Exception as err:
+        logging.error(f"Error encountered: {str(err)}")
         return (
             "Something went wrong, but returning 200 to prevent PubSub infinite retries",
             200,
