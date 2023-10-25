@@ -3,7 +3,7 @@ echo $ENV
 
 SERVICE=${2:?"Must set Cogmaker service"}
 BUCKET=${3:?"Must set Bucket"}
-ID="cogmaker"
+ID="mesh2tiff"
 
 gcloud eventarc triggers delete ${ID}-trigger-$ENV \
      --location=us-west1
