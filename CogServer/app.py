@@ -8,6 +8,7 @@ from rio_tiler.profiles import img_profiles
 from rio_tiler.colormap import cmap
 import logging
 import uvicorn
+import os
 log = logging.Logger('log')
 log.setLevel(logging.INFO)
 
@@ -22,7 +23,7 @@ app.add_middleware(
     allow_headers=['*']
 )
 
-GCS_BASE='gs://cloud-native-geospatial'
+GCS_BASE=os.environ['BUCKET']
 
 def get_tiffs(bucket, prefix="/test"):
     pass
