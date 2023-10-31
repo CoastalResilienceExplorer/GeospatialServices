@@ -17,3 +17,17 @@ To prevent PubSub from retrying on a long-running task, I had to use a front ser
 - https://console.cloud.google.com/storage/browser/test-tiff-to-cog/test?pageState=(%22StorageObjectListTable%22:(%22f%22:%22%255B%255D%22))&project=global-mangroves&prefix=&forceOnObjectsSortingFiltering=false
 - https://console.cloud.google.com/storage/browser/cloud-native-geospatial/test;tab=objects?project=global-mangroves&prefix=&forceOnObjectsSortingFiltering=false
 - https://console.cloud.google.com/run/detail/us-west1/cogmaker-staging/logs?project=global-mangroves
+
+
+```
+TAG=dev
+BASE=python-gis-base
+IMAGE=mesh2tiff-${TAG}
+docker build -t $IMAGE --build-arg BASE_IMAGE=${BASE} -f script.Dockerfile .
+```
+
+
+docker run -v $HOME/Desktop/TestData:/data -v $PWD:/app $IMAGE /data/hmax_feet_wgs.csv /data/test.tiff
+
+docker run -v $HOME/Desktop/TestData:/data -v $PWD:/app --entrypoint bash -it $IMAGE
+python3 mesh2tiff.py /data/hmax_feet_wgs.csv /data/test.tiff
