@@ -40,12 +40,12 @@ def create_vrt(id, csv_filename, vrt_filename, x="x", y="y", z="z"):
     with open(vrt_filename, 'w') as f:
         f.write(VRT_string)
 
-def mesh2tiff(id, input_csv, resolution):
+def mesh2tiff(id, input_csv, resolution, crs, outpath):
     tmp_csv = f'/tmp/{id}.csv'
     tmp_vrt = f'/tmp/{id}.vrt'
     tmp_hull = f'/tmp/{id}_hull.shp'
     tmp_dem = f'/tmp/{id}.tiff'
-    output_dem = f'/data/{id}.tiff'
+    output_dem = os.path.join(outpath, f'{id}.tiff')
     shutil.copyfile(input_csv, tmp_csv)
     create_vrt(id, tmp_csv, tmp_vrt) 
     print("Created VRT")
@@ -60,7 +60,7 @@ def mesh2tiff(id, input_csv, resolution):
     run_bash_command(bashCommand)
 
     # # Clip to Convex Hull
-    clipCommand = f'gdalwarp -s_srs EPSG:4326 -of COG -cutline {tmp_hull} -cl {f"{id}_hull"} -crop_to_cutline {tmp_dem} {output_dem}'
+    clipCommand = f'gdalwarp -s_srs {crs} -of COG -cutline {tmp_hull} -cl {f"{id}_hull"} -crop_to_cutline {tmp_dem} {output_dem}'
     print(clipCommand)
     run_bash_command(clipCommand)
 
@@ -78,9 +78,14 @@ if __name__ == "__main__":
         default=5
     )
     parser.add_argument(
-        '--id',
+        '--crs',
         type=str,
-        default=str(uuid.uuid1())
+        default="EPSG:4326"
     )
     args = parser.parse_args()
-    mesh2tiff(args.id, args.input_csv, args.resolution)
+    id = args.input_csv.split('/')[-1].split('.')[0]
+    outpath = '/data/outputs'
+    if not os.path.exists(outpath):
+        os.makedirs(outpath)
+    print(id, args.input_csv, args.resolution, args.crs, outpath)
+    mesh2tiff(id, args.input_csv, args.resolution, args.crs, outpath)
