@@ -27,7 +27,9 @@ DATA_DIR=$HOME/Desktop/TestData/test_mesh2tiff
 docker run \
     -v $PWD:/app \
     -v $DATA_DIR:/data \
-    $IMAGE \
+    --entrypoint python3 \
+    $BASE_IMAGE \
+    mesh2tiff.py \
     /data/hmax_land2.csv \
     --resolution 1 \
     --crs EPSG:32620
