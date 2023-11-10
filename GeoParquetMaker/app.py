@@ -96,7 +96,7 @@ def build_geoparquet():
         gdf.to_parquet(tmp_parquet)
         logging.info('Updating to GCS')
         filename = 'vectors/' + os.path.splitext(data['name'])[0] + '.parquet'
-        upload_blob('cloud-native-geospatial', tmp_parquet, filename)
+        upload_blob(os.environ['OUTPUT_BUCKET'], tmp_parquet, filename)
         logging.info('Done')
         return ("Completed", 200)
 

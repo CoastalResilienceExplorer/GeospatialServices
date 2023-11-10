@@ -5,6 +5,11 @@ BASE_IMAGE=${BASE_GAR_DIRECTORY}/base/python_gis_base_${ENV}
 GEOPMAKER_IMAGE=${BASE_GAR_DIRECTORY}/geoparquetmaker/geoparquetmaker${ENV}
 GEOPMAKER_SERVICE=geoparquetmaker-${ENV}
 GEOPMAKER_SERVICE_FRONT=geoparquetmaker-front-${ENV}
+INPUT_BUCKET=geopmaker-input-${ENV}
+OUTPUT_BUCKET=geopmaker-output-${ENV}
+
+gsutil mb -l us-west1 gs://$INPUT_BUCKET
+gsutil mb -l us-west1 gs://$OUTPUT_BUCKET
 
 echo """
 steps:
@@ -14,12 +19,14 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', '$GEOPMAKER_IMAGE']
 - name: 'gcr.io/cloud-builders/gcloud'
+  id: 'geopmaker'
   args: ['run', 'deploy', 
     '$GEOPMAKER_SERVICE', 
     '--image', '$GEOPMAKER_IMAGE', 
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com',
+    '--set-env-vars', 'OUTPUT_BUCKET=${OUTPUT_BUCKET}',
     '--cpu', '4',
     '--memory', '16G',
     '--timeout', '3600'
@@ -34,15 +41,13 @@ steps:
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com'
     ]
-images:
-# - $BASE_IMAGE
-- $GEOPMAKER_IMAGE
+  waitFor: ['geopmaker']
 """ > /tmp/cloudbuild.yaml
 
 gcloud builds submit \
     --config /tmp/cloudbuild.yaml
 
-bash ./eventarc.sh $ENV $GEOPMAKER_SERVICE_FRONT
+bash ./eventarc.sh $ENV $GEOPMAKER_SERVICE_FRONT $INPUT_BUCKET
 
 # Test
 # TODO, implement a proper test that fails
