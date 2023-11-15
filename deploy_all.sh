@@ -27,9 +27,16 @@ steps:
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'bash'
   args: ['tools/build_and_submit.sh', '$ENV']
-  dir: 'Mesh2Tiff'
+  dir: 'Geoparquette2Mbtiles'
   waitFor: 
   - base
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'bash'
+  args: ['tools/build_and_submit.sh', '$ENV']
+  dir: 'MBTilesServer'
+  waitFor: 
+  - base
+
 """ > /tmp/cloudbuild.yaml
 
 gcloud builds submit \
