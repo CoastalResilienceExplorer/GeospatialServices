@@ -18,6 +18,10 @@ steps:
   entrypoint: 'bash'
   args: ['tools/build_and_submit.sh', '$ENV']
   dir: 'CogServer'
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'bash'
+  args: ['tools/build_and_submit.sh', '$ENV']
+  dir: 'GeoParquetMaker'
   waitFor: 
   - base
 - name: 'gcr.io/cloud-builders/gcloud'
