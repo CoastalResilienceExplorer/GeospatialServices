@@ -52,7 +52,6 @@ def mesh2tiff(id, input_csv, resolution, crs, outpath):
     gdf = gdf_from_points(pd.read_csv(input_csv))
     tight_hull = buffer_points(gdf, 10)
     tight_hull.to_file(tmp_hull)
-    tight_hull.to_file(f'/data/{id}_hull.shp')
     left, bottom, right, top = gdf.total_bounds
     print(gdf.total_bounds)
     bashCommand = f'gdal_grid -a linear:radius=0.001:nodata=-1 -txe {math.floor(left*10000)/10000.0} {math.ceil(right*10000)/10000.0} -tye {math.floor(bottom*10000)/10000.0} {math.ceil(top*10000)/10000.0} -tr {resolution} {resolution} -of GTiff -ot Float32 -l {id} {tmp_vrt} {tmp_dem}'

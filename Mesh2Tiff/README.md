@@ -11,25 +11,22 @@ cd $BASE_DIR/Mesh2Tiff
 ```
 
 ### To run Mesh2Tiff in bulk
+It's important for the final line to stay as one line
 ```
-DATA_DIR=$HOME/Desktop/TestData/test_mesh2tiff
 docker run \
     -v $PWD:/app \
-    -v $DATA_DIR:/data \
+    -v $HOME/Desktop/TestData/test_mesh2tiff:/data \
     --entrypoint bash \
     $BASE_IMAGE \
-    iterate_directory.sh --resolution 1 --crs EPSG:32620 #it's important for these to stay on a single line
+    iterate_directory.sh --resolution 1 --crs EPSG:32620 
 ```
 
 ### To run Mesh2Tiff for an individual file
 ```
-DATA_DIR=$HOME/Desktop/TestData/test_mesh2tiff
 docker run \
     -v $PWD:/app \
-    -v $DATA_DIR:/data \
-    --entrypoint python3 \
-    $BASE_IMAGE \
-    mesh2tiff.py \
+    -v $HOME/Desktop/TestData/test_mesh2tiff:/data \
+    $IMAGE \
     /data/hmax_land2.csv \
     --resolution 1 \
     --crs EPSG:32620
