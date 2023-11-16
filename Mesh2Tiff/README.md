@@ -11,13 +11,14 @@ cd $BASE_DIR/Mesh2Tiff
 ```
 
 ### To run Mesh2Tiff in bulk
+It's important for the final line to stay as one line
 ```
 docker run \
     -v $PWD:/app \
     -v $HOME/Desktop/TestData/test_mesh2tiff:/data \
     --entrypoint bash \
     $BASE_IMAGE \
-    iterate_directory.sh --resolution 1 --crs EPSG:32620 #it's important for these to stay on a single line
+    iterate_directory.sh --resolution 1 --crs EPSG:32620 
 ```
 
 ### To run Mesh2Tiff for an individual file
