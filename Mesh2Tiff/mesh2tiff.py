@@ -13,6 +13,7 @@ logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
 def gdf_from_points(df, x='x', y='y'):
+    print(df.columns)
     return gpd.GeoDataFrame(
         df, geometry=gpd.points_from_xy(df[x], df[y]), crs="EPSG:4326"
     )
@@ -40,7 +41,7 @@ def create_vrt(id, csv_filename, vrt_filename, x="x", y="y", z="z"):
     with open(vrt_filename, 'w') as f:
         f.write(VRT_string)
 
-def mesh2tiff(id, input_csv, resolution, crs, outpath):
+def mesh2tiff(id, input_csv, resolution, crs, outpath, clip_radius):
     tmp_csv = f'/tmp/{id}.csv'
     tmp_vrt = f'/tmp/{id}.vrt'
     tmp_hull = f'/tmp/{id}_hull.shp'
@@ -50,7 +51,7 @@ def mesh2tiff(id, input_csv, resolution, crs, outpath):
     create_vrt(id, tmp_csv, tmp_vrt) 
     print("Created VRT")
     gdf = gdf_from_points(pd.read_csv(input_csv))
-    tight_hull = buffer_points(gdf, 10)
+    tight_hull = buffer_points(gdf, clip_radius)
     tight_hull.to_file(tmp_hull)
     left, bottom, right, top = gdf.total_bounds
     print(gdf.total_bounds)
@@ -81,10 +82,15 @@ if __name__ == "__main__":
         type=str,
         default="EPSG:4326"
     )
+    parser.add_argument(
+        '--clip-radius',
+        type=int,
+        default=10
+    )
     args = parser.parse_args()
     id = args.input_csv.split('/')[-1].split('.')[0]
     outpath = '/data/outputs'
     if not os.path.exists(outpath):
         os.makedirs(outpath)
     print(id, args.input_csv, args.resolution, args.crs, outpath)
-    mesh2tiff(id, args.input_csv, args.resolution, args.crs, outpath)
+    mesh2tiff(id, args.input_csv, args.resolution, args.crs, outpath, args.clip_radius)
