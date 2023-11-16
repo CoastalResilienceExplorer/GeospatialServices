@@ -7,11 +7,32 @@ from cloudevents.http import from_http
 from flask import Flask, request
 from google.cloud import storage
 import geopandas as gpd
+import pandas as pd
+import s2sphere
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
 app = Flask(__name__)
+
+
+def delete_blob(bucket_name, blob_name):
+    """Deletes a blob from the bucket."""
+    # bucket_name = "your-bucket-name"
+    # blob_name = "your-object-name"
+
+    storage_client = storage.Client(project="global-mangroves")
+
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    existing_blobs = storage_client.list_blobs(bucket_name)
+    for existing_blob in existing_blobs:
+        # print(existing_blob)
+        if blob_name == existing_blob:
+            print("Deleting")
+            blob.delete()
+            print(f"Blob {blob_name} deleted.")
+
 
 def download_blob(bucket_name, source_blob_name, destination_file_name):
     """Downloads a blob from the bucket."""
@@ -24,7 +45,7 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     # The path to which the file should be downloaded
     # destination_file_name = "local/path/to/file"
 
-    storage_client = storage.Client()
+    storage_client = storage.Client(project="global-mangroves")
 
     bucket = storage_client.bucket(bucket_name)
 
@@ -36,8 +57,10 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     blob.download_to_filename(destination_file_name)
 
     logging.info(
-        "Downloaded storage object %s from bucket %s to local file %s.", 
-        source_blob_name, bucket_name, destination_file_name
+        "Downloaded storage object %s from bucket %s to local file %s.",
+        source_blob_name,
+        bucket_name,
+        destination_file_name,
     )
 
 
@@ -52,10 +75,12 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
 
     logging.info(
         "Uploading file %s to bucket %s as %s.",
-        source_file_name, bucket_name, destination_blob_name
+        source_file_name,
+        bucket_name,
+        destination_blob_name,
     )
 
-    storage_client = storage.Client()
+    storage_client = storage.Client(project="global-mangroves")
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
 
@@ -72,10 +97,43 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
         # if_generation_match=generation_match_precondition
     )
 
-    logging.info(
-        "File %s uploaded to %s.",
-        source_file_name, destination_blob_name
-    )
+    logging.info("File %s uploaded to %s.", source_file_name, destination_blob_name)
+
+
+def partition_gdf(
+    gdf,
+    partition_file="gs://geopmaker-output-dev/vectors/World_Countries_Generalized.parquet",
+    partition_cols=["ISO"],
+    partition_by_s2=True,
+):
+    partitions = gpd.read_parquet(partition_file)
+    partitions = partitions[['geometry']+partition_cols]
+    partitioned_gdf = gpd.sjoin(gdf, partitions, how="left")
+    # Swap ISO2 for ISO3, since that is generally more common
+    if partition_file == "gs://geopmaker-output-dev/vectors/World_Countries_Generalized.parquet":
+        iso_mappings = pd.read_csv('countries-codes.csv')
+        partitioned_gdf = pd.merge(partitioned_gdf, iso_mappings, left_on="ISO", right_on="ISO2 CODE")\
+            .drop(columns=["ISO"]).rename(columns={"ISO3 CODE": "ISO"})
+
+    def get_bounds_by_geom(geom):
+        bounds = geom.bounds
+        p1 = s2sphere.LatLng.from_degrees(bounds[1], bounds[0])
+        p2 = s2sphere.LatLng.from_degrees(bounds[3], bounds[2])
+        cell_ids = [
+            str(i.id())
+            for i in r.get_covering(s2sphere.LatLngRect.from_point_pair(p1, p2))
+        ]
+        return cell_ids
+
+    cols = partition_cols
+
+    if partition_by_s2:
+        r = s2sphere.RegionCoverer()
+        partitioned_gdf["s2"] = partitioned_gdf.geometry.apply(lambda g: get_bounds_by_geom(g))
+        partitioned_gdf = partitioned_gdf.explode("s2")
+        cols += ["s2"]
+
+    return partitioned_gdf, cols
 
 
 @app.route("/build_geoparquet/", methods=["POST"])
@@ -85,28 +143,37 @@ def build_geoparquet():
     logging.info(type(request.get_json()))
     data = request.get_json()
     tmp_id = str(uuid.uuid1())
-    _, extension = os.path.splitext(data['name'])
-    tmp_file = f'/tmp/{tmp_id}.{extension[1:]}'
-    tmp_parquet = f'/tmp/{tmp_id}.parquet'
-    download_blob(data['bucket'], data['name'], tmp_file)
+    _, extension = os.path.splitext(data["name"])
+    tmp_file = f"/tmp/{tmp_id}.{extension[1:]}"
+    tmp_parquet = f"/tmp/{tmp_id}.parquet"
+    download_blob(data["bucket"], data["name"], tmp_file)
     try:
-        logging.info('Reading file with geopandas')
+        logging.info("Reading file with geopandas")
         gdf = gpd.read_file(tmp_file)
-        logging.info('Converting to parquet')
+        logging.info('Partitioning')
+        gdf, partition_cols = partition_gdf(gdf)
+        logging.info("Writing to Parquet")
+        filename = "vectors/" + os.path.splitext(data["name"])[0] + ".parquet"
+        remote_path = os.path.join(f"gs://{os.environ['OUTPUT_BUCKET']}", filename)
         gdf.to_parquet(tmp_parquet)
-        logging.info('Updating to GCS')
-        filename = 'vectors/' + os.path.splitext(data['name'])[0] + '.parquet'
-        upload_blob(os.environ['OUTPUT_BUCKET'], tmp_parquet, filename)
-        logging.info('Done')
+        delete_blob(os.environ["OUTPUT_BUCKET"], filename)
+        # to_parquet in geopandas doesn't yet implement partitions, so we're writing with pandas
+        # This impacts reading, see README
+        pd.read_parquet(tmp_parquet).to_parquet(
+            remote_path, partition_cols=partition_cols
+        )
+
         return ("Completed", 200)
 
     except Exception as e:
         logging.error(f"Error encountered: {str(e)}")
         return f"Error: {str(e)}", 500
 
+
 @app.route("/", methods=["POST"])
 def index():
     """Handle tile requests."""
+
     def request_task(url, json):
         requests.post(url, json=json)
 
@@ -116,20 +183,17 @@ def index():
     try:
         event = from_http(request.headers, request.get_data())
         logging.info(request.get_data())
-        logging.info(event.data['id'])
+        logging.info(event.data["id"])
 
         # Gets the GCS bucket name from the CloudEvent data
         # Example: "storage.googleapis.com/projects/_/buckets/my-bucket"
         # try:
-        gcs_object = os.path.join(event.data['bucket'], event.data['name'])
+        gcs_object = os.path.join(event.data["bucket"], event.data["name"])
         logging.info(gcs_object)
-        logging.info(os.environ['FORWARD_SERVICE'])
+        logging.info(os.environ["FORWARD_SERVICE"])
         fire_and_forget(
-            f"{os.environ['FORWARD_SERVICE']}/{os.environ['FORWARD_PATH']}", 
-            json={
-                'bucket':event.data['bucket'],
-                'name': event.data['name']
-            }
+            f"{os.environ['FORWARD_SERVICE']}/{os.environ['FORWARD_PATH']}",
+            json={"bucket": event.data["bucket"], "name": event.data["name"]},
         )
 
         return (
@@ -143,10 +207,11 @@ def index():
             200,
         )
 
-@app.get('/')
+
+@app.get("/")
 def test():
-    return 'OK'
+    return "OK"
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)), debug=True)
