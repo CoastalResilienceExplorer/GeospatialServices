@@ -9,7 +9,7 @@ BUCKET=gs://cogmaker-output-${ENV}
 
 if [[ $ENV == "main" ]]
 then
-  N_INSTANCES=1
+  N_INSTANCES=0 #Temporary. We may want to change this for faster TTL in the future
 else
   N_INSTANCES=0
 fi

@@ -86,13 +86,14 @@ def geoparquet_to_mbtiles():
     data = request.get_json()
     file = f"gs://{data['bucket']}/{data['name']}"
     x = gpd.read_parquet(file)
-    tmp_id = str(uuid.uuid1())
+    # tmp_id = str(uuid.uuid1())
+    tmp_id = data["name"].split('/')[-1].split('.')[0]
     tmp_file = f'/tmp/{tmp_id}.geojson'
     tmp_pmtiles = f'/tmp/{tmp_id}.pmtiles'
     logging.info(x)
     x.to_file(tmp_file)
 
-    tippecanoe_command = f"tippecanoe -o {tmp_pmtiles} --no-feature-limit --no-tile-size-limit {tmp_file}"
+    tippecanoe_command = f"tippecanoe -o {tmp_pmtiles} --drop-rate=0.1 --no-feature-limit --no-tile-size-limit {tmp_file}"
     process = subprocess.Popen(tippecanoe_command.split(' '), stdout=subprocess.PIPE)
     logging.info('Running tippecanoe')
     while True:

@@ -159,9 +159,9 @@ def build_geoparquet():
         delete_blob(os.environ["OUTPUT_BUCKET"], filename)
         # to_parquet in geopandas doesn't yet implement partitions, so we're writing with pandas
         # This impacts reading, see README
-        pd.read_parquet(tmp_parquet).to_parquet(
-            remote_path, partition_cols=partition_cols
-        )
+        # pd.read_parquet(tmp_parquet).to_parquet(
+        #     remote_path, partition_cols=partition_cols
+        # )
 
         return ("Completed", 200)
 
