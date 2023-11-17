@@ -7,7 +7,7 @@ import pandas as pd
 import s2sphere
 import xarray as xr
 import rioxarray as rxr
-from vectorize import xr_vectorize
+# from vectorize import xr_vectorize
 import uuid, json, copy
 import numpy as np
 import gc
@@ -56,7 +56,6 @@ def to_extent():
             os.makedirs(p)
     xmin, xmax = np.min(raster.x).values, np.max(raster.x).values
     ymin, ymax = np.min(raster.y).values, np.max(raster.y).values
-    # xmin, xmax, ymin, ymax = -159.0859662220443, -158.0859662220443, 20.891734248326912, 21.891734248326912
     print(xmin, xmax, ymin, ymax)
     xstep, ystep = 4,4
     for x in np.arange(xmin, xmax, xstep):
@@ -70,7 +69,7 @@ def to_extent():
                 if len(ds.point) > 0:
                     print(x, y)
                     gdf = gpd.read_file(json.dumps(vector_points(ds)), driver='GeoJSON')
-                    fname = f'{str(x)[0:7].replace("-", "S")}_{str(y)[0:7].replace("-", "w")}_{xstep}.parquet'
+                    fname = f'{str(x)[0:7].replace("-", "W")}_{str(y)[0:7].replace("-", "S")}_{xstep}.parquet'
                     gdf.to_parquet(os.path.join(output, fname))
                     del gdf
             gc.collect()

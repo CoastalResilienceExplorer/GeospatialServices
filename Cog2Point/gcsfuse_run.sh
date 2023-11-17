@@ -21,7 +21,7 @@ for bucket in $(echo $MNT_BUCKETS | tr ";" "\n")
 do
     echo ["$bucket"]
     mkdir -p $MNT_BASE/$bucket
-    gcsfuse --implicit-dirs --debug_gcs --debug_fuse $bucket $MNT_BASE/$bucket
+    gcsfuse --implicit-dirs $bucket $MNT_BASE/$bucket
 done
 
 echo "Mounting completed."
@@ -31,7 +31,6 @@ echo "Mounting completed."
 # For environments with multiple CPU cores, increase the number of workers
 # to be equal to the cores available.
 # Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
-export MALLOC_TRIM_THRESHOLD_=0
-# export MALLOC_MMAP_MAX_=40960 
+
 exec python3 app.py
 # [END cloudrun_fuse_script]

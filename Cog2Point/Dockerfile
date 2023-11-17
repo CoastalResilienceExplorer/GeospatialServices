@@ -46,6 +46,7 @@ RUN pip3 install -r requirements.txt
 
 # Ensure the script is executable
 RUN chmod +x /app/gcsfuse_run.sh
+ENV MALLOC_TRIM_THRESHOLD_=0
 
 # Use tini to manage zombie processes and signal forwarding
 # https://github.com/krallin/tini

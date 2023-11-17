@@ -79,7 +79,7 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
     )
 
 
-@app.route("/", methods=["POST"])
+@app.route("/create_mbtiles/", methods=["POST"])
 def geoparquet_to_mbtiles():
     """Handle tile requests."""
     logging.info(request.get_json())
