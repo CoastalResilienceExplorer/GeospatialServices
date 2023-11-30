@@ -213,7 +213,7 @@ def index():
         logging.info(os.environ["FORWARD_SERVICE"])
         fire_and_forget(
             f"{os.environ['FORWARD_SERVICE']}/{os.environ['FORWARD_PATH']}",
-            json={"bucket": event.data["bucket"], "name": event.data["name"], "partitions": False},
+            json={"bucket": event.data["bucket"], "name": event.data["name"], "partition": False},
         )
 
         return (
