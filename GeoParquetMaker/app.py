@@ -161,21 +161,27 @@ def build_geoparquet():
     # try:
     logging.info("Reading file with geopandas")
     gdf = gpd.read_file(tmp_file)
-    logging.info('Partitioning')
-    gdf, partition_cols = partition_gdf(gdf)
-    logging.info("Writing to Parquet")
-    filename = "vectors/" + os.path.splitext(data["name"])[0] + ".parquet"
-    remote_path = os.path.join(f"gs://{os.environ['OUTPUT_BUCKET']}", filename)
-    gdf.to_parquet(tmp_parquet)
-    delete_blob(os.environ["OUTPUT_BUCKET"], filename)
-    # to_parquet in geopandas doesn't yet implement partitions, so we're writing with pandas
-    # This impacts reading, see README
-    to_write = pd.read_parquet(tmp_parquet)
-    print(to_write)
-    print(to_write.columns)
-    to_write.to_parquet(
-        remote_path, partition_cols=partition_cols, max_partitions=1_000_000
-    )
+    if data['partition']:
+        logging.info('Partitioning')
+        gdf, partition_cols = partition_gdf(gdf)
+        logging.info("Writing to Parquet")
+        filename = "vectors/" + os.path.splitext(data["name"])[0] + ".parquet"
+        remote_path = os.path.join(f"gs://{os.environ['OUTPUT_BUCKET']}", filename)
+        gdf.to_parquet(tmp_parquet)
+        delete_blob(os.environ["OUTPUT_BUCKET"], filename)
+        # to_parquet in geopandas doesn't yet implement partitions, so we're writing with pandas
+        # This impacts reading, see README
+        to_write = pd.read_parquet(tmp_parquet)
+        print(to_write)
+        print(to_write.columns)
+        to_write.to_parquet(
+            remote_path, partition_cols=partition_cols, max_partitions=1_000_000
+        )
+    else:
+        print("No Partitions")
+        filename = "vectors/" + os.path.splitext(data["name"])[0] + ".parquet"
+        remote_path = os.path.join(f"gs://{os.environ['OUTPUT_BUCKET']}", filename)
+        gdf.to_parquet(remote_path)
 
     return ("Completed", 200)
 
@@ -207,7 +213,7 @@ def index():
         logging.info(os.environ["FORWARD_SERVICE"])
         fire_and_forget(
             f"{os.environ['FORWARD_SERVICE']}/{os.environ['FORWARD_PATH']}",
-            json={"bucket": event.data["bucket"], "name": event.data["name"]},
+            json={"bucket": event.data["bucket"], "name": event.data["name"], "partitions": False},
         )
 
         return (
