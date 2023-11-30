@@ -70,8 +70,11 @@ def build_geoparquet():
             gpd.read_parquet(os.path.join(os.environ['MNT_BASE'], data['features_file'], f'{p.id()}.parquet'))
         )
     gdf = pd.concat(buff)
+    print(gdf.shape)
     gdf_filtered = gdf.cx[lower_left.x:upper_right.x, lower_left.y:upper_right.y]
+    print(gdf_filtered.shape)
     gdf_filtered.to_file('/tmp/features.gpkg', driver="GPKG")
+    print('file written, sending...')
 
     return flask.send_from_directory('/tmp', 'features.gpkg')
 

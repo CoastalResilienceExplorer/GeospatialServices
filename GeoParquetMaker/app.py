@@ -138,6 +138,8 @@ def partition_gdf(
 
     if partition_by_s2:
         r = s2sphere.RegionCoverer()
+        r.min_level = 5
+        r.max_level = 7
         partitioned_gdf["s2"] = partitioned_gdf.geometry.apply(lambda g: get_bounds_by_geom(g))
         partitioned_gdf = partitioned_gdf.explode("s2")
         cols += ["s2"]
@@ -168,8 +170,11 @@ def build_geoparquet():
     delete_blob(os.environ["OUTPUT_BUCKET"], filename)
     # to_parquet in geopandas doesn't yet implement partitions, so we're writing with pandas
     # This impacts reading, see README
-    pd.read_parquet(tmp_parquet).to_parquet(
-        remote_path, partition_cols=partition_cols
+    to_write = pd.read_parquet(tmp_parquet)
+    print(to_write)
+    print(to_write.columns)
+    to_write.to_parquet(
+        remote_path, partition_cols=partition_cols, max_partitions=1_000_000
     )
 
     return ("Completed", 200)
