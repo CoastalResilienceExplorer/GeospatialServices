@@ -100,6 +100,11 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
     logging.info("File %s uploaded to %s.", source_file_name, destination_blob_name)
 
 
+def is_polygon(gdf):
+    polygon_bools = gdf.geom_type.apply(lambda s: "polygon" in s.lower()).unique()
+    return len(polygon_bools) == 1 and polygon_bools[0]
+
+
 def partition_gdf(
     gdf,
     partition_file="gs://geopmaker-output-dev/vectors/World_Countries_Generalized.parquet",
@@ -110,23 +115,31 @@ def partition_gdf(
         partitioned_gdf = gdf.rename(columns={"ISO3": "ISO"})
     else:
         partitions = gpd.read_parquet(partition_file)
-        partitions = partitions[['geometry']+partition_cols]
+        partitions = partitions[["geometry"] + partition_cols]
         partitioned_gdf = gpd.sjoin(gdf, partitions, how="left")
         # Swap ISO2 for ISO3, since that is generally more common
-        if partition_file == "gs://geopmaker-output-dev/vectors/World_Countries_Generalized.parquet":
-            iso_mappings = pd.read_csv('countries-codes.csv')
-            partitioned_gdf = pd.merge(partitioned_gdf, iso_mappings, left_on="ISO", right_on="ISO2 CODE")\
-                .drop(columns=["ISO"]).rename(columns={"ISO3 CODE": "ISO"})
+        if (
+            partition_file
+            == "gs://geopmaker-output-dev/vectors/World_Countries_Generalized.parquet"
+        ):
+            iso_mappings = pd.read_csv("countries-codes.csv")
+            partitioned_gdf = (
+                pd.merge(
+                    partitioned_gdf, iso_mappings, left_on="ISO", right_on="ISO2 CODE"
+                )
+                .drop(columns=["ISO"])
+                .rename(columns={"ISO3 CODE": "ISO"})
+            )
 
     def get_bounds_by_geom(geom):
         bounds = geom.bounds
         p1 = s2sphere.LatLng.from_degrees(max(bounds[1], -90), max(bounds[0], -180))
         p2 = s2sphere.LatLng.from_degrees(min(bounds[3], 90), min(bounds[2], 180))
         if not p1.is_valid():
-            print('p1')
+            print("p1")
             print(p1)
         if not p2.is_valid():
-            print('p2')
+            print("p2")
             print(p2)
         cell_ids = [
             str(i.id())
@@ -140,7 +153,9 @@ def partition_gdf(
         r = s2sphere.RegionCoverer()
         r.min_level = 5
         r.max_level = 7
-        partitioned_gdf["s2"] = partitioned_gdf.geometry.apply(lambda g: get_bounds_by_geom(g))
+        partitioned_gdf["s2"] = partitioned_gdf.geometry.apply(
+            lambda g: get_bounds_by_geom(g)
+        )
         partitioned_gdf = partitioned_gdf.explode("s2")
         cols += ["s2"]
 
@@ -161,8 +176,8 @@ def build_geoparquet():
     # try:
     logging.info("Reading file with geopandas")
     gdf = gpd.read_file(tmp_file)
-    if data['partition']:
-        logging.info('Partitioning')
+    if data["partition"]:
+        logging.info("Partitioning")
         gdf, partition_cols = partition_gdf(gdf)
         logging.info("Writing to Parquet")
         filename = "vectors/" + os.path.splitext(data["name"])[0] + ".parquet"
@@ -182,6 +197,13 @@ def build_geoparquet():
         filename = "vectors/" + os.path.splitext(data["name"])[0] + ".parquet"
         remote_path = os.path.join(f"gs://{os.environ['OUTPUT_BUCKET']}", filename)
         gdf.to_parquet(remote_path)
+        # If polygon, write the Rep Pts as well since those are generally useful.
+        if is_polygon(gdf):
+            filename_pts = "vectors/" + os.path.splitext(data["name"])[0] + "_reppts" + ".parquet"
+            remote_path = os.path.join(f"gs://{os.environ['OUTPUT_BUCKET']}", filename_pts)
+            gdf.geometry = gdf.geometry.representative_point()
+            gdf.to_parquet(remote_path)
+
 
     return ("Completed", 200)
 
@@ -213,7 +235,11 @@ def index():
         logging.info(os.environ["FORWARD_SERVICE"])
         fire_and_forget(
             f"{os.environ['FORWARD_SERVICE']}/{os.environ['FORWARD_PATH']}",
-            json={"bucket": event.data["bucket"], "name": event.data["name"], "partition": False},
+            json={
+                "bucket": event.data["bucket"],
+                "name": event.data["name"],
+                "partition": False
+            },
         )
 
         return (
