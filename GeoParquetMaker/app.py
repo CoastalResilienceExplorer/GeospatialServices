@@ -100,25 +100,47 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
     logging.info("File %s uploaded to %s.", source_file_name, destination_blob_name)
 
 
+def is_polygon(gdf):
+    polygon_bools = gdf.geom_type.apply(lambda s: "polygon" in s.lower()).unique()
+    return len(polygon_bools) == 1 and polygon_bools[0]
+
+
 def partition_gdf(
     gdf,
     partition_file="gs://geopmaker-output-dev/vectors/World_Countries_Generalized.parquet",
     partition_cols=["ISO"],
     partition_by_s2=True,
 ):
-    partitions = gpd.read_parquet(partition_file)
-    partitions = partitions[['geometry']+partition_cols]
-    partitioned_gdf = gpd.sjoin(gdf, partitions, how="left")
-    # Swap ISO2 for ISO3, since that is generally more common
-    if partition_file == "gs://geopmaker-output-dev/vectors/World_Countries_Generalized.parquet":
-        iso_mappings = pd.read_csv('countries-codes.csv')
-        partitioned_gdf = pd.merge(partitioned_gdf, iso_mappings, left_on="ISO", right_on="ISO2 CODE")\
-            .drop(columns=["ISO"]).rename(columns={"ISO3 CODE": "ISO"})
+    if "ISO3" in gdf.columns:
+        partitioned_gdf = gdf.rename(columns={"ISO3": "ISO"})
+    else:
+        partitions = gpd.read_parquet(partition_file)
+        partitions = partitions[["geometry"] + partition_cols]
+        partitioned_gdf = gpd.sjoin(gdf, partitions, how="left")
+        # Swap ISO2 for ISO3, since that is generally more common
+        if (
+            partition_file
+            == "gs://geopmaker-output-dev/vectors/World_Countries_Generalized.parquet"
+        ):
+            iso_mappings = pd.read_csv("countries-codes.csv")
+            partitioned_gdf = (
+                pd.merge(
+                    partitioned_gdf, iso_mappings, left_on="ISO", right_on="ISO2 CODE"
+                )
+                .drop(columns=["ISO"])
+                .rename(columns={"ISO3 CODE": "ISO"})
+            )
 
     def get_bounds_by_geom(geom):
         bounds = geom.bounds
-        p1 = s2sphere.LatLng.from_degrees(bounds[1], bounds[0])
-        p2 = s2sphere.LatLng.from_degrees(bounds[3], bounds[2])
+        p1 = s2sphere.LatLng.from_degrees(max(bounds[1], -90), max(bounds[0], -180))
+        p2 = s2sphere.LatLng.from_degrees(min(bounds[3], 90), min(bounds[2], 180))
+        if not p1.is_valid():
+            print("p1")
+            print(p1)
+        if not p2.is_valid():
+            print("p2")
+            print(p2)
         cell_ids = [
             str(i.id())
             for i in r.get_covering(s2sphere.LatLngRect.from_point_pair(p1, p2))
@@ -129,7 +151,11 @@ def partition_gdf(
 
     if partition_by_s2:
         r = s2sphere.RegionCoverer()
-        partitioned_gdf["s2"] = partitioned_gdf.geometry.apply(lambda g: get_bounds_by_geom(g))
+        r.min_level = 5
+        r.max_level = 7
+        partitioned_gdf["s2"] = partitioned_gdf.geometry.apply(
+            lambda g: get_bounds_by_geom(g)
+        )
         partitioned_gdf = partitioned_gdf.explode("s2")
         cols += ["s2"]
 
@@ -147,10 +173,11 @@ def build_geoparquet():
     tmp_file = f"/tmp/{tmp_id}.{extension[1:]}"
     tmp_parquet = f"/tmp/{tmp_id}.parquet"
     download_blob(data["bucket"], data["name"], tmp_file)
-    try:
-        logging.info("Reading file with geopandas")
-        gdf = gpd.read_file(tmp_file)
-        logging.info('Partitioning')
+    # try:
+    logging.info("Reading file with geopandas")
+    gdf = gpd.read_file(tmp_file)
+    if data["partition"]:
+        logging.info("Partitioning")
         gdf, partition_cols = partition_gdf(gdf)
         logging.info("Writing to Parquet")
         filename = "vectors/" + os.path.splitext(data["name"])[0] + ".parquet"
@@ -159,15 +186,30 @@ def build_geoparquet():
         delete_blob(os.environ["OUTPUT_BUCKET"], filename)
         # to_parquet in geopandas doesn't yet implement partitions, so we're writing with pandas
         # This impacts reading, see README
-        # pd.read_parquet(tmp_parquet).to_parquet(
-        #     remote_path, partition_cols=partition_cols
-        # )
+        to_write = pd.read_parquet(tmp_parquet)
+        print(to_write)
+        print(to_write.columns)
+        to_write.to_parquet(
+            remote_path, partition_cols=partition_cols, max_partitions=1_000_000
+        )
+    else:
+        print("No Partitions")
+        filename = "vectors/" + os.path.splitext(data["name"])[0] + ".parquet"
+        remote_path = os.path.join(f"gs://{os.environ['OUTPUT_BUCKET']}", filename)
+        gdf.to_parquet(remote_path)
+        # If polygon, write the Rep Pts as well since those are generally useful.
+        if is_polygon(gdf):
+            filename_pts = "vectors/" + os.path.splitext(data["name"])[0] + "_reppts" + ".parquet"
+            remote_path = os.path.join(f"gs://{os.environ['OUTPUT_BUCKET']}", filename_pts)
+            gdf.geometry = gdf.geometry.representative_point()
+            gdf.to_parquet(remote_path)
 
-        return ("Completed", 200)
 
-    except Exception as e:
-        logging.error(f"Error encountered: {str(e)}")
-        return f"Error: {str(e)}", 500
+    return ("Completed", 200)
+
+    # except Exception as e:
+    #     logging.error(f"Error encountered: {str(e)}")
+    #     return f"Error: {str(e)}", 500
 
 
 @app.route("/", methods=["POST"])
@@ -193,7 +235,11 @@ def index():
         logging.info(os.environ["FORWARD_SERVICE"])
         fire_and_forget(
             f"{os.environ['FORWARD_SERVICE']}/{os.environ['FORWARD_PATH']}",
-            json={"bucket": event.data["bucket"], "name": event.data["name"]},
+            json={
+                "bucket": event.data["bucket"],
+                "name": event.data["name"],
+                "partition": False
+            },
         )
 
         return (
