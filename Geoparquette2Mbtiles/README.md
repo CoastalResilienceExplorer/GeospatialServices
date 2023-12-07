@@ -19,7 +19,7 @@ POST_DATA={
 Note that you'll also need to include ENV Variable for: `GS_SECRET_ACCESS_KEY` and `GS_ACCESS_KEY_ID`.  Those can be found at the relevant storage bucket console.
 
 ```
-docker build -t gp2mb --build-arg BASE_IMAGE=$BASE_IMAGE .
-docker run -it -v $PWD:/app --entrypoint bash -p 8080:8080 gp2mb
+docker build -t gp2mb .
+docker run -it -v $PWD:/app --entrypoint bash -p 3000:8080 gp2mb
 ```
 
