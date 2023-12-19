@@ -21,7 +21,8 @@ for bucket in $(echo $MNT_BUCKETS | tr ";" "\n")
 do
     echo ["$bucket"]
     mkdir -p $MNT_BASE/$bucket
-    gcsfuse --implicit-dirs --debug_gcs --debug_fuse $bucket $MNT_BASE/$bucket
+    # gcsfuse --implicit-dirs --debug_gcs --debug_fuse $bucket $MNT_BASE/$bucket
+    gcsfuse --implicit-dirs $bucket $MNT_BASE/$bucket
 done
 
 echo "Mounting completed."
