@@ -54,7 +54,7 @@ def get_relevant_partitions(covering, features):
     return list(set(buff))
 
 
-@memoize_with_persistence("/tmp/cache.pkl")
+# @memoize_with_persistence("/tmp/cache.pkl")
 def get_bbox_filtered_gdf(features, lower_left, upper_right) -> gpd.GeoDataFrame:
     covering = get_covering(
         [lower_left.x, lower_left.y], [upper_right.x, upper_right.y]
@@ -84,7 +84,6 @@ def apply_ddf(features, depth_column, ddfs='data/composite_ddfs_by_bg.csv', avg_
             return False
 
     to_return = copy.deepcopy(features)
-    to_return.to_file('test_join.gpkg')
     ddfs = pd.read_csv(ddfs, dtype = {'Blockgroup': str})
     avg_costs = pd.read_csv(avg_costs, dtype={'Blockgroup': str})
     to_return = pd.merge(to_return, ddfs, left_on="GEOID", right_on="Blockgroup")
@@ -137,12 +136,14 @@ def build_geoparquet():
     ###
     # Get Flood Depths by Building
     ###
-    features = get_bbox_filtered_gdf(
-        os.path.join(os.environ["MNT_BASE"], data["features_file"]),
-        lower_left,
-        upper_right,
-    )
-    features = features.set_crs("EPSG:4326").to_crs(raster.rio.crs)
+    all_buildings = get_bbox_filtered_gdf(
+            os.path.join(os.environ["MNT_BASE"], data["features_file"]),
+            lower_left,
+            upper_right,
+        ).set_crs("EPSG:4326").to_crs(raster.rio.crs)
+    all_buildings.geometry = all_buildings.geometry.centroid
+    all_buildings.sindex
+    features = copy.deepcopy(all_buildings)
     features.geometry = features.geometry.centroid
     features.sindex
     print("getting extent...")
@@ -157,15 +158,6 @@ def build_geoparquet():
     mode = data["mode"]
     if mode == "SAN_MATEO":
         print("doing special things for San Mateo...")
-        lower_left = transform_point(extent.total_bounds[0], extent.total_bounds[1], raster.rio.crs)
-        upper_right = transform_point(extent.total_bounds[2], extent.total_bounds[3], raster.rio.crs)
-        all_buildings = get_bbox_filtered_gdf(
-            os.path.join(os.environ["MNT_BASE"], data["features_file"]),
-            lower_left,
-            upper_right,
-        ).set_crs("EPSG:4326").to_crs(raster.rio.crs)
-        all_buildings.geometry = all_buildings.geometry.centroid
-        all_buildings.sindex
         bgs = gpd.read_file("data/bcdc_vulnerability_2020.gpkg").to_crs(raster.rio.crs)
         # Totals
         all_joined = gpd.sjoin(all_buildings, bgs, how="inner", predicate="intersects")
@@ -176,8 +168,8 @@ def build_geoparquet():
         print("writing buildings gpkg...")
         damages.to_file(os.path.join(output_dir, "features.gpkg"), driver="GPKG")
 
+        print('calculating damage totals...')
         damage_summary = damages[['GEOID', 'total_damage']].groupby('GEOID').sum()
-
         flooded_count_buildings = flooded_joined.groupby('GEOID').count().geometry.rename('flooded_buildings')
         output = pd.merge(total_count_buildings, flooded_count_buildings, left_index=True, right_index=True)
         bg_columns = ['GEOID', 'estimate_t', 'socVulnRan']
