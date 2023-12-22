@@ -132,11 +132,9 @@ def add_geobox(ds, crs=None):
 
 # @memoize_geospatial_with_persistence('/tmp/extract_points.pkl')
 def extract_points(ds, gdf, column_name) -> gpd.GeoDataFrame:
-    values = []
-    for _, point in gdf.iterrows():
-        y, x = point.geometry.y, point.geometry.x
-        value = ds.sel(x=x, y=y, method='nearest').item()
-        values.append(value)
-    
-    gdf[column_name] = values
+    # note the extra 'z' dimension that our results will be organized along
+    da_x = xr.DataArray(gdf.geometry.x.values, dims=['z'])
+    da_y = xr.DataArray(gdf.geometry.y.values, dims=['z'])
+    results = ds.isel(band=0).sel(x=da_x, y=da_y, method='nearest')
+    gdf[column_name] = results.values
     return gdf
