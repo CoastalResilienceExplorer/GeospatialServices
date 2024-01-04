@@ -140,7 +140,7 @@ def apply_ddf(
 
 @app.route("/san_mateo/", methods=["POST"])
 @timeit
-def build_geoparquet():
+def san_mateo():
     """Handle tile requests."""
     logging.info(request.get_json())
     logging.info(type(request.get_json()))
