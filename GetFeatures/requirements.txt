@@ -1,3 +1,6 @@
 flask
 s2sphere
 pyarrow
+scipy
+odc-geo
+requests
