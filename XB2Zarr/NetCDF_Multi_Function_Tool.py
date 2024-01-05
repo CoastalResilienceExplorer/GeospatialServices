@@ -27,8 +27,29 @@ output_relative_path_general = r'Documents\Projects\Coastal_Resilience_Lab\04_US
 
 
 def get_bounds(ds):
-    print(ds.isel(nx=0).globalx.min().compute())
-    print(ds.isel(nx=-1).globalx.min().compute())
+    return [
+        ds.globalx.min().compute().values,
+        ds.globalx.max().compute().values,
+        ds.globaly.min().compute().values,
+        ds.globaly.max().compute().values
+    ]
+
+def transform_coords(ds, nx_max, ny_max, bounds):
+    xmin, xmax, ymin, ymax = bounds
+    new_x = [
+        (xmin + i / ds.x.max() * (xmax - xmin)).values
+        for i in ds.x.values
+    ]
+    new_y = [
+        (ymax - i / ds.y.max() * (ymax - ymin)).values
+        for i in ds.y.values
+    ]
+    ds = ds.assign_coords(x=new_x, y=new_y)
+    return ds
+
+
+
+
 
 
 def write_timestep_images(rds, full_output_path, start_time, end_time, variable, time_method):
