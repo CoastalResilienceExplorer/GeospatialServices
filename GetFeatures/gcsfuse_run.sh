@@ -32,5 +32,6 @@ echo "Mounting completed."
 # For environments with multiple CPU cores, increase the number of workers
 # to be equal to the cores available.
 # Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
-exec python3 app.py
+exec python3 app_HL.py
+# exec python3 app.py
 # [END cloudrun_fuse_script]
