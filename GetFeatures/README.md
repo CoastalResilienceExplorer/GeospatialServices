@@ -1,6 +1,7 @@
-## To access tiles
+# Service for downloading geospatial features
+Currently designed to work with OSM and OpenBuildings. but can easily be extended to any large datasets which are created and partitioned with `GeoParquetMaker`.
 
-## To Run Locally
+### To Build and Run Locally
 ```
 ENV=dev
 IMAGE=cog2extent-${ENV}
@@ -14,19 +15,18 @@ docker run \
     --cap-add SYS_ADMIN --device /dev/fuse \
     -v $HOME/.config/gcloud:/root/.config/gcloud \
     -v $PWD:/app \
-    -e MNT_BUCKETS="cloud-native-geospatial;supporting-data2;cogmaker-output-staging" \
+    -e MNT_BUCKETS="supporting-data2" \
     -it \
     -p 3002:8080 \
     $IMAGE
 ```
 
-To download:
-```
-curl -X POST http://localhost:3000/get_features/ \
-   -H "Content-Type: application/json" \
-   -d '{"features_file": "supporting-data2/google-microsoft-open-buildings.parquet/country_iso=USA/", "raster": "cogmaker-output-staging/hmax_rp_500_rest_150.tiff" }' > usvi-buildings.gpkg
+### Examples
+To download, see the `tools/trigger` scripts.
 
-curl -X POST http://localhost:3000/get_features/ \
-   -H "Content-Type: application/json" \
-   -d '{"features_file": "supporting-data2/google-microsoft-open-buildings.parquet/country_iso=USA/", "raster": "cloud-native-geospatial/san-mateo-data/flooddepth_0e100.tif" }' > sanmateo-buildings.gpkg
-```
+### Next Up
+This is eventually working it's way up to include the following:
+- bindings to the ArcGIS Online Catalog
+- application of damage statistics
+
+The latter of these has been implemented for one specific project (see `san_mateo.py`), but needs a fair amount of thought and abstraction, mostly about how to classify features to apply appropriate vulnerability curves.
