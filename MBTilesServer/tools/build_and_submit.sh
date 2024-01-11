@@ -5,6 +5,7 @@ IMAGE=${BASE_GAR_DIRECTORY}/mbtileserver/pmtileserver-${ENV}
 SERVICE=pmtileserver-${ENV}
 BUCKET=geoparquet2mbtiles-output-${ENV}
 
+sleep 20
 gcloud run deploy $SERVICE --source . \
     --execution-environment gen2 \
     --allow-unauthenticated \
