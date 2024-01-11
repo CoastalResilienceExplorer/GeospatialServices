@@ -91,6 +91,8 @@ def geoparquet_to_mbtiles():
     # tmp_id = str(uuid.uuid1())
     tmp_id = data["name"].split('/')[-1].split('.')[0]
     use_id=data["use_id"]
+    if use_id not in x.columns:
+        x[use_id] = x.index
     tmp_file = f'/tmp/{tmp_id}.geojson'
     tmp_pmtiles = f'/tmp/{tmp_id}.pmtiles'
     logging.info(x)
