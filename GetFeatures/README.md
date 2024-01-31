@@ -15,7 +15,7 @@ docker run \
     --cap-add SYS_ADMIN --device /dev/fuse \
     -v $HOME/.config/gcloud:/root/.config/gcloud \
     -v $PWD:/app \
-    -e MNT_BUCKETS="supporting-data2" \
+    -e MNT_BUCKETS="supporting-data2;geopmaker-output-staging" \
     -it \
     -p 3002:8080 \
     $IMAGE

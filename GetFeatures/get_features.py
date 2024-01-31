@@ -65,6 +65,19 @@ def get_open_buildings(left, bottom, right, top, ISO3):
     return buildings
 
 
+@memoize_with_persistence('/tmp/cache')
+def get_features_unpartitioned(features_file, left, bottom, right, top, CRS):
+    lower_left = transform_point(left, bottom, CRS)
+    upper_right = transform_point(right, top, CRS)
+    features = gpd.read_parquet(
+        os.path.join(os.environ["MNT_BASE"], features_file)
+    )
+    print(features)
+    print(lower_left, upper_right)
+    features = features.cx[lower_left.x:upper_right.x, lower_left.y:upper_right.y]
+    return features
+
+
 def get_osm(left, bottom, top, right, way_type):
     data = _get_osm(left, bottom, top, right, way_type)
     gdf = geojson_to_geodataframe(data)
