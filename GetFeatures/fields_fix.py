@@ -2,7 +2,7 @@ import geopandas as gpd
 import os
 
 BCDC_FIELDS = ['fid', 'GEOID', 'TRACTID', 'geometry', 'HighVuln']
-CES4_FIELDS = ['fid', 'TRACT', 'geometry', 'HighVuln']
+CES4_FIELDS = ['fid', 'Tract', 'geometry', 'HighVuln']
 
 _BCDC = [
     '/Users/chlowrie/Desktop/OPC/results/hl_namefix/BCDC_hl_results.gpkg',
@@ -37,5 +37,5 @@ for BCDC_path in _BCDC:
 
 for CES4_path in _CES4:
     CES4 = gpd.read_file(CES4_path)
-    CES4 = CES4[[c for c in CES4.columns if c in CES4_FIELDS or other_fields(c)]]
+    CES4 = CES4[[c for c in CES4.columns if c in CES4_FIELDS or other_fields(c)]].rename(columns={'Tract': "TRACTID"}).astype({'TRACTID': int})
     CES4.to_file(os.path.join(OUTPUT, CES4_path.split('/')[-1]))
