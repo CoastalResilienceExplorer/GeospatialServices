@@ -10,6 +10,8 @@ import requests
 import threading
 import rioxarray as rxr
 import xarray as xr
+from utils.datastore import add_entity, get_managed_assets
+import json
 
 
 logging.basicConfig()
@@ -87,7 +89,7 @@ def to_cog(inpath, outpath):
     return outpath
 
 
-@app.route("/build_COG/managed/", methods=["POST"])
+@app.route("/build_COG/from_gcs/", methods=["POST"])
 def build_cog_managed():
     """Handle tile requests."""
     # event = from_http(request.headers, request.get_data())
@@ -117,11 +119,22 @@ def build_cog():
     tmp = f'/tmp/{id}.tif'
     tmp_cog = f'/tmp/{id}_cog.tif'
 
-    rxr.open_rasterio(
+    data = rxr.open_rasterio(
         io.BytesIO(request.files['data'].read())
-    ).isel(band=0).rio.to_raster(tmp)
+    ).isel(band=0)
+    data.rio.to_raster(tmp)
+    print(data.attrs)
+
     to_cog(tmp, tmp_cog)
     upload_blob(os.environ['OUTPUT_BUCKET'], tmp_cog, request.form['name'])
+    add_entity(
+        'ManagedCOG', 
+        {
+            "name": request.form['name'], 
+            "bucket": os.environ["OUTPUT_BUCKET"],
+            "attrs": str(data.attrs),
+            "crs": data.rio.crs.to_proj4()
+        })
     logging.info('Done')
     return (
         f"Completed",
@@ -129,6 +142,15 @@ def build_cog():
     )
 
 
+@app.route("/get_managed_assets/", methods=["GET"])
+def _get_managed_assets(
+    entity_type: str = "ManagedCOG"
+):
+    assets = get_managed_assets(entity_type)
+    return (
+        assets,
+        200,
+    )
 
 
 @app.route("/", methods=["POST"])
