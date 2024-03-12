@@ -1,4 +1,4 @@
-import os
+import os, io
 from cloudevents.http import from_http
 from flask import Flask, request
 from google.events.cloud.storage import StorageObjectData
@@ -8,6 +8,9 @@ import uuid
 import subprocess
 import requests
 import threading
+import rioxarray as rxr
+import xarray as xr
+
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
@@ -25,7 +28,7 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     # The path to which the file should be downloaded
     # destination_file_name = "local/path/to/file"
 
-    storage_client = storage.Client()
+    storage_client = storage.Client(project='global-mangroves')
 
     bucket = storage_client.bucket(bucket_name)
 
@@ -51,7 +54,7 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
     # The ID of your GCS object
     # destination_blob_name = "storage-object-name"
 
-    storage_client = storage.Client()
+    storage_client = storage.Client(project='global-mangroves')
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
 
@@ -73,12 +76,24 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
     )
 
 
-@app.route("/build_COG/", methods=["POST"])
-def build_cog():
+def to_cog(inpath, outpath):
+    bashCommand = f"gdalwarp {inpath} {outpath} -of COG"
+    process = subprocess.Popen(bashCommand.split(' '), stdout=subprocess.PIPE)
+    logging.info('Preparing COG')
+    while True:
+        line = process.stdout.readline()
+        if not line: break
+        print(line, flush=True)
+    return outpath
+
+
+@app.route("/build_COG/managed/", methods=["POST"])
+def build_cog_managed():
     """Handle tile requests."""
     # event = from_http(request.headers, request.get_data())
-    logging.info(request.get_json())
-    logging.info(type(request.get_json()))
+    logging.info(request.form)
+    # logging.info(request.get_json())
+    # logging.info(type(request.get_json()))
     # logging.info(request.get_json().decode())
     # logging.info(type(request.get_data().decode()))
     data = request.get_json()
@@ -86,19 +101,34 @@ def build_cog():
     tmp = f'/tmp/{id}.tif'
     tmp_cog = f'/tmp/{id}_cog.tif'
     download_blob(data['bucket'], data['name'], tmp)
-    bashCommand = f"gdalwarp {tmp} {tmp_cog} -of COG"
-    process = subprocess.Popen(bashCommand.split(' '), stdout=subprocess.PIPE)
-    logging.info('Preparing COG')
-    while True:
-        line = process.stdout.readline()
-        if not line: break
-        print(line, flush=True)
+    to_cog(tmp, tmp_cog)
     upload_blob(os.environ['OUTPUT_BUCKET'], tmp_cog, data['name'])
     logging.info('Done')
     return (
         f"Completed",
         200,
     )
+
+
+@app.route("/build_COG/", methods=["POST"])
+def build_cog():
+
+    id = str(uuid.uuid1())
+    tmp = f'/tmp/{id}.tif'
+    tmp_cog = f'/tmp/{id}_cog.tif'
+
+    rxr.open_rasterio(
+        io.BytesIO(request.files['data'].read())
+    ).isel(band=0).rio.to_raster(tmp)
+    to_cog(tmp, tmp_cog)
+    upload_blob(os.environ['OUTPUT_BUCKET'], tmp_cog, request.form['name'])
+    logging.info('Done')
+    return (
+        f"Completed",
+        200,
+    )
+
+
 
 
 @app.route("/", methods=["POST"])
@@ -145,4 +175,4 @@ def test():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)), debug=True)
