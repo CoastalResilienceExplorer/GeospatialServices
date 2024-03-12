@@ -27,8 +27,6 @@ app.add_middleware(
 
 GCS_BASE=os.environ['BUCKET']
 
-
-
 def to_rgb(data, nodata):
     '''Converts greyscale to RGB for Mapbox Terrain consumption'''
 
@@ -96,8 +94,9 @@ def get_rgb_tile(
     '''Returns a Mapbox-ready elevation tile'''
     options = img_profiles.get('png')
     dataset = f'{GCS_BASE}/{dataset}'
-    options={"unscale":unscale}
-    with Reader(dataset, options=options) as cog:
+    print(options)
+    # options={"unscale":unscale}
+    with Reader(dataset, options={"unscale":unscale}) as cog:
         t = cog.tile(x, y, z)
         buff = render(
             to_rgb(t.data[0], cog.info().nodata_value),
@@ -105,7 +104,7 @@ def get_rgb_tile(
             img_format="PNG",
             **options,
         )
-        return Response(content=buff, media_type="image/png")
+        return Response(content=buff, media_type="ïmage/png")
 
 
 @app.get('/')

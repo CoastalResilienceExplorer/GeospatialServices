@@ -114,11 +114,9 @@ def build_cog_managed():
 
 @app.route("/build_COG/", methods=["POST"])
 def build_cog():
-
     id = str(uuid.uuid1())
     tmp = f'/tmp/{id}.tif'
     tmp_cog = f'/tmp/{id}_cog.tif'
-
     data = rxr.open_rasterio(
         io.BytesIO(request.files['data'].read())
     ).isel(band=0)
@@ -143,7 +141,7 @@ def build_cog():
 
 
 @app.route("/get_managed_assets/", methods=["GET"])
-def _get_managed_assets(
+def api_get_managed_assets(
     entity_type: str = "ManagedCOG"
 ):
     assets = get_managed_assets(entity_type)
