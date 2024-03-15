@@ -1,0 +1,50 @@
+http:
+  port: 8080
+admin:
+  port: 9876
+  host: localhost
+apiEndpoints:
+  cogserver:
+    host: '*'
+    paths: 
+    - '/:z/:x/:y.png'
+    - '/get_rgb_tile/:z/:x/:y.png'
+  cogmaker:
+    host: '*'
+    paths:
+    - '/build_COG/'
+serviceEndpoints:
+  cogserver:
+    url: 'https://cogserver-staging-myzvqet7ua-uw.a.run.app'
+  cogmaker:
+    url: 'https://cogmaker-dev-myzvqet7ua-uw.a.run.app'
+policies:
+  - basic-auth
+  - cors
+  - expression
+  - key-auth
+  - log
+  - oauth2
+  - proxy
+  - rate-limit
+pipelines:
+  default:
+    apiEndpoints:
+      - cogmaker
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: cogmaker
+              changeOrigin: true
+  cogserver:
+    apiEndpoints:
+      - cogserver
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: cogserver 
+              changeOrigin: true
