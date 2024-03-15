@@ -4,3 +4,4 @@ google-events
 cloudevents
 google-cloud-storage
 requests
+google-cloud-datastore

@@ -17,7 +17,7 @@ docker run \
     -v $PWD:/app \
     -e MNT_BUCKETS="supporting-data2" \
     -it \
-    -p 3002:8080 \
+    -p 3003:8080 \
     $IMAGE
 ```
 
