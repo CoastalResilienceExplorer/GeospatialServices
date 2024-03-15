@@ -19,9 +19,11 @@ def main():
         )
         belize_flooding = rxr.open_rasterio(BELIZE, decode_times=False)[0].isel(band=0, timemax=2, time=2)
         print(belize_flooding)
-        belize_flooding.hmax.plot()
-        plt.savefig('./test.png')
+        return belize_flooding
+    
+        # belize_flooding.hmax.plot()
+        # plt.savefig('./test.png')
     
 
 if __name__ == "__main__":
-    main()
+    x = main()
