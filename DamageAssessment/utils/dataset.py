@@ -1,3 +1,7 @@
+from PIL import Image
+import numpy as np
+import os
+import xarray as xr
 
 
 def get_resolution(ds):
@@ -5,3 +9,72 @@ def get_resolution(ds):
         abs(ds.x.values[1] - ds.x.values[0]),
         abs(ds.y.values[1] - ds.y.values[0])
     ]
+
+def get_timestep_as_geo(rds, full_output_path, t_index):
+
+    # Construct the full file path for the input and output
+
+    # Define spacing for the grid
+    x_spacing = 0.0005  # Adjust this value as needed
+    y_spacing = 0.0005  # Adjust this value as needed
+
+    # Open the dataset with Dask using xarray
+    # rds = xr.open_dataset(full_input_path, chunks={time_method: 500})
+
+    # Extract 'globalx', 'globaly', and the selected variable
+    globalx = rds['x']
+    globaly = rds['y']
+
+    # Perform flattening and index calculations once
+    globalx_flat = globalx.values.flatten()
+    globaly_flat = globaly.values.flatten()
+
+    print(globalx_flat)
+    print(globaly_flat)
+
+    x_min, x_max = np.min(globalx_flat), np.max(globalx_flat)
+    y_min, y_max = np.min(globaly_flat), np.max(globaly_flat)
+    num_points_x = int((x_max - x_min) / x_spacing) + 1
+    num_points_y = int((y_max - y_min) / y_spacing) + 1
+    print(num_points_x * num_points_y)
+
+    x_indices = ((globalx_flat - x_min) / x_spacing).astype(int)
+    y_indices = ((globaly_flat - y_min) / y_spacing).astype(int)
+    valid_indices = (x_indices >= 0) & (x_indices < num_points_x) & (y_indices >= 0) & (y_indices < num_points_y)
+
+    # Create a template grid
+    template_grid = np.full((num_points_y, num_points_x), np.nan, dtype=float)
+
+    # Copy the template grid for current timestep
+    grid_values = template_grid.copy()
+
+    # Extract data for the current timestep and flatten
+    timestep_flattened = rds.isel({"timemax": t_index}).values.flatten()
+
+    # Populate grid_values using pre-calculated indices
+    grid_values[y_indices[valid_indices], x_indices[valid_indices]] = timestep_flattened[valid_indices]
+
+    # Replace NaN values with -1000 (or another value if needed)
+    grid_values[np.isnan(grid_values)] = -1000
+    print(grid_values)
+    print(grid_values.shape)
+    print(x_indices)
+
+    # Define dimensions
+    dims = ('y', 'x')
+
+    # Define coordinates
+    coords = {
+        'x': np.interp(range(0, num_points_x), [0, grid_values.shape[1]], [x_min, x_max]),
+        'y': np.interp(range(0, num_points_y), [0, grid_values.shape[0]], [y_min, y_max])
+    }
+
+    # Create the DataArray
+    new_data_array = xr.DataArray(grid_values, dims=dims, coords=coords)
+    return new_data_array
+
+    # Save the image for the current timestep
+    # tiff_filename = os.path.join(full_output_path, f'test_{t_index}.tiff')
+    # image = Image.fromarray(grid_values.astype('float32'), 'F')
+    # image = image.transpose(Image.FLIP_TOP_BOTTOM)
+    # image.save(tiff_filename, 'TIFF', compression=None)
