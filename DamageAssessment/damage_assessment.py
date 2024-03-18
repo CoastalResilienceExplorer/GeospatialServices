@@ -57,3 +57,5 @@ if __name__ == "__main__":
     ds = get_timestep_as_geo(ds, './', 1)
     ds.rio.set_spatial_dims('x', 'y', inplace=True)
     damages = main(ds)
+    damages.rio.to_raster('./test_damages.tiff')
+    ds.rio.to_raster('./test_interp.tiff')
