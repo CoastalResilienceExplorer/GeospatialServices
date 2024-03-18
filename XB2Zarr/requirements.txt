@@ -1,0 +1,8 @@
+fastapi
+python-multipart
+uvicorn
+scipy
+h5netcdf
+pillow
+dask
+zarr
