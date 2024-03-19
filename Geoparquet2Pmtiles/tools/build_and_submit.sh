@@ -1,9 +1,9 @@
 ENV=${1:?"Must set environment as first arg"}
 echo $ENV
 BASE_GAR_DIRECTORY=us-west1-docker.pkg.dev/global-mangroves
-IMAGE=${BASE_GAR_DIRECTORY}/geoparquetmaker/geoparquet2mbtiles-${ENV}
-SERVICE=geoparquet2mbtiles-${ENV}
-OUTPUT_BUCKET=geoparquet2mbtiles-output-${ENV}
+IMAGE=${BASE_GAR_DIRECTORY}/geoparquetmaker/geoparquet2pmtiles-${ENV}
+SERVICE=geoparquet2pmtiles-${ENV}
+OUTPUT_BUCKET=geoparquet2pmtiles-output-${ENV}
 
 gsutil mb -l us-west1 gs://$OUTPUT_BUCKET
 

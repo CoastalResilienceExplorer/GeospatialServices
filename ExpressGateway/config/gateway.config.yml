@@ -13,11 +13,24 @@ apiEndpoints:
     host: '*'
     paths:
     - '/build_COG/'
+    - '/build_COG/from_gcs/'
+  cog2pt:
+    host: '*'
+    paths:
+    - '/cog2pt/'
+  geoparquet2pmtiles:
+    host: '*'
+    paths:
+    - '/create_pmtiles/'
 serviceEndpoints:
   cogserver:
     url: 'https://cogserver-staging-myzvqet7ua-uw.a.run.app'
   cogmaker:
-    url: 'https://cogmaker-dev-myzvqet7ua-uw.a.run.app'
+    url: 'https://cogmaker-staging-myzvqet7ua-uw.a.run.app'
+  cog2pt:
+    url: 'https://cog2pt-staging-myzvqet7ua-uw.a.run.app'
+  geoparquet2pmtiles:
+    url: 'https://geoparquet2pmtiles-staging-myzvqet7ua-uw.a.run.app'
 policies:
   - basic-auth
   - cors
@@ -47,4 +60,24 @@ pipelines:
       - proxy:
           - action:
               serviceEndpoint: cogserver 
+              changeOrigin: true
+  cog2pt:
+    apiEndpoints:
+      - cog2pt
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: cog2pt
+              changeOrigin: true
+  geoparquet2pmtiles:
+    apiEndpoints:
+      - geoparquet2pmtiles
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: geoparquet2pmtiles
               changeOrigin: true

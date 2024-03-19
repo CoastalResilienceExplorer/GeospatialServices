@@ -79,8 +79,8 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
     )
 
 
-@app.route("/create_mbtiles/", methods=["POST"])
-def geoparquet_to_mbtiles():
+@app.route("/create_pmtiles/", methods=["POST"])
+def geoparquet_to_pmtiles():
     """Handle tile requests."""
     logging.info(request.get_json())
     data = request.get_json()
