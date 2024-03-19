@@ -44,7 +44,7 @@ steps:
     '${SERVICE_FRONT}', 
     '--image', '$IMAGE', 
     '--set-env-vars', 'FORWARD_SERVICE=$(gcloud run services describe $SERVICE --platform managed --region us-west1 --format 'value(status.url)')',
-    '--set-env-vars', 'FORWARD_PATH=/build_COG/',
+    '--set-env-vars', 'FORWARD_PATH=/build_COG/managed/',
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com'
@@ -58,4 +58,3 @@ bash ./eventarc.sh $ENV $SERVICE_FRONT $INPUT_BUCKET
 
 # Test
 gsutil -m cp ./test/small.tif gs://test-tiff-to-cog/test/small.tif
-# TODO, implement a proper test that fails
