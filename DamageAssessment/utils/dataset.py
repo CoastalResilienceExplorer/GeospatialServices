@@ -56,9 +56,6 @@ def get_timestep_as_geo(rds, full_output_path, t_index):
 
     # Replace NaN values with -1000 (or another value if needed)
     grid_values[np.isnan(grid_values)] = -1000
-    print(grid_values)
-    print(grid_values.shape)
-    print(x_indices)
 
     # Define dimensions
     dims = ('y', 'x')
