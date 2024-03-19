@@ -6,11 +6,11 @@ import warnings
 import matplotlib.pyplot as plt
 from utils.dataset import get_resolution, get_timestep_as_geo
 from utils.damages import apply_ddf
+import subprocess
 
 
 BUILDING_AREA = './data/WSF3d_V02_BuildingArea.tif'
-BELIZE = './data/belize-sfincs_map-2.nc'
-FLOODING = './data/hmax_medium_large.tiff'
+BELIZE = './data/belize/belize_sfincs_MANGROVELIMIT_LWM_MANNING_090020_hmax.tif'
 DDF = './data/damage/DDF_Americas.csv'
 MAXDAMAGE = './data/damage/MaxDamage_per_m2.csv'
 COUNTRY = "Belize"
@@ -51,11 +51,13 @@ def main(flooding: xr.Dataset | xr.DataArray):
     
 
 if __name__ == "__main__":
-    # x = main()
-    ds = xr.open_dataset(BELIZE).hmax
-    print(ds)
-    ds = get_timestep_as_geo(ds, './', 1)
-    ds.rio.set_spatial_dims('x', 'y', inplace=True)
+    # This is intermediate processing to deal with non-rectilinear grids
+    tmp_cog = '/tmp/raster.tiff'
+    bashCommand = f"gdalwarp {BELIZE} {tmp_cog} -of COG"
+    process = subprocess.Popen(bashCommand.split(' '), stdout=subprocess.PIPE)
+    while True:
+        line = process.stdout.readline()
+        if not line: break
+        print(line, flush=True)
+    ds = rxr.open_rasterio(tmp_cog).isel(band=0)
     damages = main(ds)
-    damages.rio.to_raster('./test_damages.tiff')
-    ds.rio.to_raster('./test_interp.tiff')
