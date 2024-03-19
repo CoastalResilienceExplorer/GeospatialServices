@@ -44,7 +44,7 @@ steps:
     '${SERVICE_FRONT}', 
     '--image', '$IMAGE', 
     '--set-env-vars', 'FORWARD_SERVICE=$(gcloud run services describe $SERVICE --platform managed --region us-west1 --format 'value(status.url)')',
-    '--set-env-vars', 'FORWARD_PATH=/build_COG/managed/',
+    '--set-env-vars', 'FORWARD_PATH=/build_COG/',
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com'
