@@ -1,0 +1,1 @@
+`docker run -it -v $PWD:/app -v $HOME/.config/gcloud/:/root/.config/gcloud us-west1-docker.pkg.dev/global-mangroves/base/python_gis_base_dev`
