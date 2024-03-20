@@ -1,29 +1,29 @@
 ENV=${1:?"Must set environment as first arg"}
 echo $ENV
 BASE_GAR_DIRECTORY=us-west1-docker.pkg.dev/global-mangroves
-BASE_IMAGE=${BASE_GAR_DIRECTORY}/base/python_gis_base_${ENV}
-IMAGE=${BASE_GAR_DIRECTORY}/mbtileserver/cog2pt-${ENV}
-SERVICE=cog2pt-${ENV}
-OUTPUT_BUCKET=cog2pt-output-${ENV}
+IMAGE=${BASE_GAR_DIRECTORY}/geoparquetmaker/geoparquet2pmtiles-${ENV}
+SERVICE=geoparquet2pmtiles-${ENV}
+OUTPUT_BUCKET=geoparquet2pmtiles-output-${ENV}
+
+gsutil mb -l us-west1 gs://$OUTPUT_BUCKET
 
 echo """
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--build-arg', 'BASE_IMAGE=$BASE_IMAGE', '-t', '$IMAGE', '.']
+  args: ['build', '-t', '$IMAGE', '.']
   dir: '.'
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', '$IMAGE']
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['run', 'deploy', 
     '$SERVICE', 
-    '--execution-environment', 'gen2',
     '--image', '$IMAGE', 
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
-    '--service-account', 'fs-identity',
-    '--update-env-vars', 'MNT_BUCKETS=cloud-native-geospatial;geopmaker-output-${ENV};cogmaker-output-${ENV}',
-    '--cpu', '2',
-    '--memory', '8G',
+    '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com',
+    '--set-env-vars', 'OUTPUT_BUCKET=${OUTPUT_BUCKET}',
+    '--cpu', '4',
+    '--memory', '16G',
     '--timeout', '3600'
     ]
 """ > /tmp/cloudbuild.yaml

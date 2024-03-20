@@ -2,12 +2,15 @@
 ENV=${1:?"Must set environment as first arg"}
 echo $ENV
 
-COGMAKER=cogmaker-${ENV}
+COGSERVER=cogserver-${ENV}
+
+ID=geospatialservices-api-${ENV}
+GATEWAY=${ID}-gateway
 
 echo """
 swagger: '2.0'
 info:
-  title: geospatialservices-api
+  title: ${ID}
   description: Manage all endpoints related to cloud native geospatial data
   version: 1.0.0
 schemes:
@@ -21,61 +24,52 @@ securityDefinitions:
     in: header
     description: API Key
 paths:
-  /build_COG:
-    post:
-      summary: Create a managed Cloud Optimized Geotiff dataset from a submission
-      operationId: build_COG
-      x-google-backend:
-        address: '$(gcloud run services describe $COGMAKER --platform managed --region us-west1 --format 'value(status.url)')/build_COG/'
+  /{z}/{x}/{y}:
+    get:
+      summary: Get an XYZ Tile
+      operationId: get_tile
       responses:
         '200':
           description: A successful response
           schema:
             type: string
-      security:
-        - api_key: []
-      parameters:
-        - in: formData
-          name: data
-          type: string
-          description: The file to upload.
-        - in: formData
-          name: name
-          type: string
-          description: The name of the file to create.
-
-  /build_COG/managed:
-    post:
-      summary: Create a managed Cloud Optimized Geotiff dataset from a dataset in GCP
-      operationId: build_COG_managed
       x-google-backend:
-        address: '$(gcloud run services describe $COGMAKER --platform managed --region us-west1 --format 'value(status.url)')/build_COG/managed/'
-      responses:
-        '200':
-          description: A successful response
-          schema:
-            type: string
+        address: '$(gcloud run services describe $COGSERVER --platform managed --region us-west1 --format 'value(status.url)')/{z}/{x}/{y}.png'
       security:
         - api_key: []
-      consumes:
-        - application/json
       parameters:
-        - in: body
-          name: params
-          schema: 
-            type: object
-            properties:
-              name:
-                type: string
-              bucket:
-                type: string
+        - in: path
+          name: x   # Note the name is the same as in the path
+          required: true
+          type: integer
+          minimum: 1
+          description: X
+        - in: path
+          name: y   # Note the name is the same as in the path
+          required: true
+          type: integer
+          minimum: 1
+          description: Y
+        - in: path
+          name: z   # Note the name is the same as in the path
+          required: true
+          type: integer
+          minimum: 1
+          description: Z
 """ > /tmp/apibuild.yaml
+
+
+gcloud api-gateway apis create ${ID}
 
 CONFIG_ID=config-$RANDOM
 gcloud api-gateway api-configs create $CONFIG_ID \
-    --api=geospatialservices-api --openapi-spec=/tmp/apibuild.yaml \
+    --api=${ID} --openapi-spec=/tmp/apibuild.yaml \
     --backend-auth-service-account=cog-maker@global-mangroves.iam.gserviceaccount.com
 
-gcloud api-gateway gateways update geospatialservices-gateway \
-  --api=geospatialservices-api --api-config=$CONFIG_ID \
+gcloud api-gateway gateways create $GATEWAY \
+  --api=${ID} --api-config=$CONFIG_ID \
+  --location=us-west2
+
+gcloud api-gateway gateways update $GATEWAY \
+  --api=${ID} --api-config=$CONFIG_ID \
   --location=us-west2

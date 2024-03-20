@@ -40,7 +40,8 @@ def vector_points(da):
     } for i in zip(da['data'], da['coords']['point']['data'])]
     return gj
 
-@app.route("/to_extent/", methods=["POST"])
+
+@app.route("/cog2pt/", methods=["POST"])
 def to_extent():
     """Handle tile requests."""
     logging.info(request.get_json())

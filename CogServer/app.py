@@ -83,6 +83,42 @@ def tile(
     return Response(content, media_type="image/png")
 
 
+@app.get(
+    r"/{z}/{x}/{y}",
+    responses={
+        200: {
+            "content": {"image/png": {}}, "description": "Return an image.",
+        }
+    },
+    response_class=Response,
+    description="Read COG and return a tile",
+)
+def tile(
+    z: int,
+    x: int,
+    y: int,
+    dataset: str,
+    color: str = 'ylorrd',
+    min_val: int = 0,
+    max_val: int = 10000,
+    unscale: bool = True
+):
+    """Handle tile requests."""
+    dataset = f'{GCS_BASE}/{dataset}'
+    cm = cmap.get(color)
+    options={"unscale":unscale}
+    with Reader(dataset, options=options) as cog:
+        img = cog.tile(x, y, z)
+    img.rescale(
+        in_range=((min_val, max_val),),
+        out_range=((0, 255),)
+    )
+    content = img.render(img_format="PNG", colormap=cm, **img_profiles.get("png"))
+    # print(img.data)
+    # return 200
+    return Response(content, media_type="image/png")
+
+
 @app.get("/get_rgb_tile/{z}/{x}/{y}.png")
 def get_rgb_tile(
     z:int, 
