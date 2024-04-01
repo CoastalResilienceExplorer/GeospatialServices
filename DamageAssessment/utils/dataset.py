@@ -2,6 +2,8 @@ from PIL import Image
 import numpy as np
 import os
 import xarray as xr
+import rioxarray as rxr
+import subprocess
 
 
 def get_resolution(ds):
@@ -70,8 +72,20 @@ def get_timestep_as_geo(rds, full_output_path, t_index):
     new_data_array = xr.DataArray(grid_values, dims=dims, coords=coords)
     return new_data_array
 
-    # Save the image for the current timestep
-    # tiff_filename = os.path.join(full_output_path, f'test_{t_index}.tiff')
-    # image = Image.fromarray(grid_values.astype('float32'), 'F')
-    # image = image.transpose(Image.FLIP_TOP_BOTTOM)
-    # image.save(tiff_filename, 'TIFF', compression=None)
+
+
+def makeSafe_rio(ds):
+    tmp_cog1 = '/tmp/tmp_raster.tiff'
+    tmp_cog2 = '/tmp/raster.tiff'
+    for p in (tmp_cog1, tmp_cog2):
+        if os.path.exists(p):
+            os.remove(p)
+    ds.rio.to_raster(tmp_cog1)
+    bashCommand = f"gdalwarp {tmp_cog1} {tmp_cog2} -of COG"
+    process = subprocess.Popen(bashCommand.split(' '), stdout=subprocess.PIPE)
+    while True:
+        line = process.stdout.readline()
+        if not line: break
+        print(line, flush=True)
+    x = rxr.open_rasterio(tmp_cog2).isel(band=0)
+    return x

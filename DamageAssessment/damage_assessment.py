@@ -3,13 +3,14 @@ import xarray as xr
 import pandas as pd
 from rasterio.errors import NotGeoreferencedWarning
 import warnings
-import matplotlib.pyplot as plt
 from utils.dataset import get_resolution, get_timestep_as_geo
 from utils.damages import apply_ddf
 import subprocess
+import numpy as np
 
 
-BUILDING_AREA = './data/WSF3d_V02_BuildingArea.tif'
+BUILDING_AREA = 'gs://supporting-data2/WSF3d_v02_BuildingArea.tif'
+# BUILDING_AREA = './WSF3d_V02_BuildingArea.tif'
 BELIZE = './data/belize/belize_sfincs_MANGROVELIMIT_LWM_MANNING_090020_hmax.tif'
 DDF = './data/damage/DDF_Americas.csv'
 MAXDAMAGE = './data/damage/MaxDamage_per_m2.csv'
@@ -46,7 +47,7 @@ def main(flooding: xr.Dataset | xr.DataArray):
         max_damage_df = pd.read_csv(MAXDAMAGE)
         max_damage = max_damage_df[max_damage_df["Country"] == COUNTRY]["Total"].values[0]
         damage_totals = damage_percents * max_damage
-        return damage_totals * buildings
+        return (damage_totals * buildings)
 
     
 
