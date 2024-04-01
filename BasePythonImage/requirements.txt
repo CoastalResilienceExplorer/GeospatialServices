@@ -5,3 +5,5 @@ rioxarray
 rasterio
 h5netcdf
 matplotlib
+flask
+fastapi
