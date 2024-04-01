@@ -13,7 +13,7 @@ See `tools/build_and_submit.sh`
 ```
 INPUT="/Users/chlowrie/Desktop/TestData/belize_sfincs_MANGROVELIMIT_LWM_MANNING_090020_hmax.tif"
 REMOTE_OUTPUT="belize/belize_test.tiff"
-LOCAL_OUTPUT="/Users/chlowrie/Desktop/TestData/BelizeTest.tiff"
+LOCAL_OUTPUT="/Users/chlowrie/Desktop/TestData/BelizeTest.tiff.gz"
 
 bash tools/trigger.sh \
     $INPUT \
