@@ -22,6 +22,10 @@ apiEndpoints:
     host: '*'
     paths:
     - '/create_pmtiles/'
+  damage:
+    host: '*'
+    paths:
+    - '/damage/dlr_guf/'
 serviceEndpoints:
   cogserver:
     url: 'https://cogserver-staging-myzvqet7ua-uw.a.run.app'
@@ -31,6 +35,8 @@ serviceEndpoints:
     url: 'https://cog2pt-staging-myzvqet7ua-uw.a.run.app'
   geoparquet2pmtiles:
     url: 'https://geoparquet2pmtiles-staging-myzvqet7ua-uw.a.run.app'
+  damage:
+    url: 'https://damages-staging-myzvqet7ua-uw.a.run.app'
 policies:
   - basic-auth
   - cors
@@ -80,4 +86,14 @@ pipelines:
       - proxy:
           - action:
               serviceEndpoint: geoparquet2pmtiles
+              changeOrigin: true
+  damage:
+    apiEndpoints:
+      - damage
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: damage
               changeOrigin: true
