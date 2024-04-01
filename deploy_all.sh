@@ -21,13 +21,13 @@ steps:
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'bash'
   args: ['tools/build_and_submit.sh', '$ENV']
-  dir: 'GeoParquetMaker'
+  dir: 'GeoparquetMaker'
   waitFor: 
   - base
 - name: 'gcr.io/cloud-builders/gcloud'
   entrypoint: 'bash'
   args: ['tools/build_and_submit.sh', '$ENV']
-  dir: 'Geoparquette2Mbtiles'
+  dir: 'Geoparquet2Pmtiles'
   waitFor: 
   - base
 - name: 'gcr.io/cloud-builders/gcloud'

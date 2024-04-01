@@ -14,6 +14,5 @@ WORKDIR /app
 COPY . /app/
 RUN apt install -y gdal-bin libgdal-dev
 RUN pip3 install -r requirements.txt
-RUN tippecanoe -o test.mbtiles --no-feature-limit --no-tile-size-limit /app/test/lao_adm3.geojson
 
 ENTRYPOINT [ "python3", "app.py" ]
