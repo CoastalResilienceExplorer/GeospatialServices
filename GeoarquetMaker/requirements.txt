@@ -1,9 +1,0 @@
-Flask
-gunicorn
-google-events
-cloudevents
-google-cloud-storage
-requests
-geopandas
-pyarrow
-s2sphere
