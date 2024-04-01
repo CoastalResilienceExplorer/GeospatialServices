@@ -36,6 +36,12 @@ steps:
   dir: 'MBTilesServer'
   waitFor: 
   - base
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'bash'
+  args: ['tools/build_and_submit.sh', '$ENV']
+  dir: 'DamageAssessment'
+  waitFor: 
+  - base
 
 """ > /tmp/cloudbuild.yaml
 
