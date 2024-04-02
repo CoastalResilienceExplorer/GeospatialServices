@@ -1,0 +1,3 @@
+google-cloud-storage
+pystac
+pystac-client

@@ -89,3 +89,13 @@ def makeSafe_rio(ds):
         print(line, flush=True)
     x = rxr.open_rasterio(tmp_cog2).isel(band=0)
     return x
+
+
+def compressRaster(input_path, output_path):
+    bashCommand = f"gdalwarp {input_path} {output_path} -of COG -co COMPRESS=LZW"
+    process = subprocess.Popen(bashCommand.split(' '), stdout=subprocess.PIPE)
+    while True:
+        line = process.stdout.readline()
+        if not line: break
+        print(line, flush=True)
+    return output_path

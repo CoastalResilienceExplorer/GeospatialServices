@@ -8,8 +8,9 @@ import copy, io
 import uuid
 
 from utils.api_requests import response_to_tiff
-from utils.dataset import makeSafe_rio
+from utils.dataset import makeSafe_rio, compressRaster
 from utils.gcs import upload_blob, compress_file
+from utils.pystac_utils import get_landuse, download_and_compile_items
 from damage_assessment import main as damage_assessment
 
 logging.basicConfig()
@@ -28,12 +29,13 @@ def api_damage_assessment():
     x = makeSafe_rio(flooding)
     damages = damage_assessment(x)
     id = str(uuid.uuid4())
+    id2 = str(uuid.uuid4())
     tmp_rast = f"/tmp/{id}.tiff"
-    tmp_rast_compressed = f"/tmp/{id}.tiff.gz"
+    tmp_rast_compressed = f"/tmp/{id2}.tiff"
     damages.rio.to_raster(tmp_rast)
-    upload_blob(GCS_BASE, tmp_rast, request.form['output'])
-    compress_file(tmp_rast, tmp_rast_compressed)
-    return flask.send_from_directory('/tmp', f'{id}.tiff.gz')
+    compressRaster(tmp_rast, tmp_rast_compressed)
+    upload_blob(GCS_BASE, tmp_rast_compressed, request.form['output'])
+    return flask.send_from_directory('/tmp', f'{id2}.tiff')
 
 
 @app.get("/")
