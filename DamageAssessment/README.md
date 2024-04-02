@@ -9,11 +9,11 @@ The code takes a raster input representing a georeferenced floodmap, and returns
 If running as a server, the return response is a GZipped Geotiff, and data is also posted up to Google Cloud Storage.
 
 ### To Run From Server
-See `tools/build_and_submit.sh`
+See `tools/trigger.sh`
 ```
 INPUT="/Users/chlowrie/Desktop/TestData/belize_sfincs_MANGROVELIMIT_LWM_MANNING_090020_hmax.tif"
 REMOTE_OUTPUT="belize/belize_test.tiff"
-LOCAL_OUTPUT="/Users/chlowrie/Desktop/TestData/BelizeTest.tiff.gz"
+LOCAL_OUTPUT="/Users/chlowrie/Desktop/TestData/BelizeTest.tiff"
 
 bash tools/trigger.sh \
     $INPUT \
@@ -21,7 +21,7 @@ bash tools/trigger.sh \
     $LOCAL_OUTPUT
 ```
 
-`REMOTE_OUTPUT` is stored in `cloud-native-geospatial`.
+`REMOTE_OUTPUT` is stored in `cogmaker-output-staging`.
 
 ### Building Locally
 ```
