@@ -1,2 +1,4 @@
 *.tiff
 *.tif
+.pytest_cache
+data/*.tiff.aux.xml

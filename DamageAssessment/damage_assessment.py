@@ -47,16 +47,4 @@ def main(flooding: xr.Dataset | xr.DataArray):
         damage_totals = damage_percents * max_damage
         return (damage_totals * buildings)
 
-    
 
-# if __name__ == "__main__":
-#     # This is intermediate processing to deal with non-rectilinear grids
-#     tmp_cog = '/tmp/raster.tiff'
-#     bashCommand = f"gdalwarp {BELIZE} {tmp_cog} -of COG"
-#     process = subprocess.Popen(bashCommand.split(' '), stdout=subprocess.PIPE)
-#     while True:
-#         line = process.stdout.readline()
-#         if not line: break
-#         print(line, flush=True)
-#     ds = rxr.open_rasterio(tmp_cog).isel(band=0)
-#     damages = main(ds)
