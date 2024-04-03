@@ -20,7 +20,7 @@ DAMAGES_OUTPUT="/Users/chlowrie/Desktop/TestData/BelizeTest_damages.tiff"
 bash tools/trigger_damages.sh \
     $INPUT \
     $REMOTE_OUTPUT \
-    $LOCAL_OUTPUT
+    $DAMAGES_OUTPUT
 ```
 
 #### Population
