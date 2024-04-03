@@ -4,7 +4,10 @@ import os
 import xarray as xr
 import rioxarray as rxr
 import subprocess
+import uuid
 
+
+TMP_FOLDER='/tmp'
 
 def get_resolution(ds):
     return [
@@ -89,3 +92,16 @@ def makeSafe_rio(ds):
         print(line, flush=True)
     x = rxr.open_rasterio(tmp_cog2).isel(band=0)
     return x
+
+
+def compressRaster(ds: xr.DataArray | xr.Dataset, output_path):
+    id = str(uuid.uuid4())
+    tmp_rast = f"/tmp/{id}.tiff"
+    ds.rio.to_raster(tmp_rast)
+    bashCommand = f"gdalwarp {tmp_rast} {output_path} -of COG -co COMPRESS=LZW"
+    process = subprocess.Popen(bashCommand.split(' '), stdout=subprocess.PIPE)
+    while True:
+        line = process.stdout.readline()
+        if not line: break
+        print(line, flush=True)
+    return output_path

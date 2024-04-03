@@ -9,19 +9,35 @@ The code takes a raster input representing a georeferenced floodmap, and returns
 If running as a server, the return response is a GZipped Geotiff, and data is also posted up to Google Cloud Storage.
 
 ### To Run From Server
-See `tools/build_and_submit.sh`
+See `tools/trigger_damages.sh` and `tools/trigger_population.sh`
+
+#### Damages
 ```
 INPUT="/Users/chlowrie/Desktop/TestData/belize_sfincs_MANGROVELIMIT_LWM_MANNING_090020_hmax.tif"
-REMOTE_OUTPUT="belize/belize_test.tiff"
-LOCAL_OUTPUT="/Users/chlowrie/Desktop/TestData/BelizeTest.tiff.gz"
+REMOTE_OUTPUT="belize/belize_test_damages.tiff"
+DAMAGES_OUTPUT="/Users/chlowrie/Desktop/TestData/BelizeTest_damages.tiff"
 
-bash tools/trigger.sh \
+bash tools/trigger_damages.sh \
     $INPUT \
     $REMOTE_OUTPUT \
     $LOCAL_OUTPUT
 ```
 
-`REMOTE_OUTPUT` is stored in `cloud-native-geospatial`.
+#### Population
+```
+INPUT="/Users/chlowrie/Desktop/TestData/belize_sfincs_MANGROVELIMIT_LWM_MANNING_090020_hmax.tif"
+THRESHOLD=0.5
+REMOTE_OUTPUT="belize/belize_test_population.tiff"
+POPULATION_OUTPUT="/Users/chlowrie/Desktop/TestData/BelizeTest_population.tiff"
+
+bash tools/trigger_population.sh \
+    $INPUT \
+    $THRESHOLD \
+    $REMOTE_OUTPUT \
+    $POPULATION_OUTPUT
+```
+
+`REMOTE_OUTPUT` is stored in `cogmaker-output-staging`.
 
 ### Building Locally
 ```
