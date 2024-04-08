@@ -131,3 +131,11 @@ def compressRaster(ds: xr.DataArray | xr.Dataset, output_path):
         if not line: break
         print(line, flush=True)
     return output_path
+
+def maskEdge(ds):
+    height, width = ds.shape
+    edge_mask = (ds.coords[ds.dims[0]] == ds.coords[ds.dims[0]].values[0]) | \
+                    (ds.coords[ds.dims[0]] == ds.coords[ds.dims[0]].values[height - 1]) | \
+                    (ds.coords[ds.dims[1]] == ds.coords[ds.dims[1]].values[0]) | \
+                    (ds.coords[ds.dims[1]] == ds.coords[ds.dims[1]].values[width - 1])
+    return ds * (edge_mask.astype(int) * -1 + 1)

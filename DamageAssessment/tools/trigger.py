@@ -49,7 +49,6 @@ if __name__ == "__main__":
     response = requests.post(
         ENDPOINT, data=data, files=files
     )
-    print(response.content)
 
     with open(args.output, 'wb') as f:
         f.write(response.content)

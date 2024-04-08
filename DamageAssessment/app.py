@@ -7,7 +7,7 @@ import rioxarray as rxr
 import copy, io
 import uuid
 
-from utils.api_requests import response_to_tiff_factory
+from utils.api_requests import response_to_tiff_factory, process_reprojection_edge, nodata_to_zero
 from utils.dataset import makeSafe_rio, compressRaster
 from utils.gcs import upload_blob, compress_file
 from utils.pystac_utils import get_landuse, download_and_compile_items
@@ -23,6 +23,8 @@ GCS_BASE=os.environ['OUTPUT_BUCKET']
 
 @app.route('/damage/dlr_guf/', methods=["POST"])
 @response_to_tiff_factory(app)
+@nodata_to_zero
+@process_reprojection_edge
 def api_damage_assessment():
     flooding = rxr.open_rasterio(
         io.BytesIO(request.files['flooding'].read())
@@ -38,6 +40,8 @@ def api_damage_assessment():
 
 @app.route('/population/GHSL_2020_100m/', methods=["POST"])
 @response_to_tiff_factory(app)
+@nodata_to_zero
+@process_reprojection_edge
 def api_population_assessment():
     flooding = rxr.open_rasterio(
         io.BytesIO(request.files['flooding'].read())

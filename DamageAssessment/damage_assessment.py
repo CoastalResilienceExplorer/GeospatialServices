@@ -33,6 +33,7 @@ def main(flooding: xr.Dataset | xr.DataArray, window=0, population_min=5):
         buildings = buildings.rio.clip_box(
             minx=minx, miny=miny, maxx=maxx, maxy=maxy, auto_expand=True
         )
+        flooding = xr.where(flooding == flooding.rio.nodata, 0, flooding).rio.write_crs('EPSG:4326')
         buildings = xr.where(buildings == buildings.rio.nodata, 0, buildings)
         buildings_res = get_resolution(buildings)
 
@@ -48,6 +49,7 @@ def main(flooding: xr.Dataset | xr.DataArray, window=0, population_min=5):
         max_damage = max_damage_df[max_damage_df["Country"] == COUNTRY]["Total"].values[0]
         damage_totals = damage_percents * max_damage
         if window:
+            print('windowing')
             from population_assessment import POPULATION
             population = rxr.open_rasterio(
                 POPULATION
