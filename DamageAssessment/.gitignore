@@ -2,3 +2,4 @@
 *.tif
 .pytest_cache
 data/*.tiff.aux.xml
+*.tiff.aux.xml

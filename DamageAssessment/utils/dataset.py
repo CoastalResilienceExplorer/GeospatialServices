@@ -5,9 +5,35 @@ import xarray as xr
 import rioxarray as rxr
 import subprocess
 import uuid
+import math
 
 
 TMP_FOLDER='/tmp'
+
+def degrees_to_meters(distance_degrees, latitude):
+    """
+    Translate a distance in degrees to meters, given a latitude.
+
+    Parameters:
+        distance_degrees (float): Distance in degrees.
+        latitude (float): Latitude in decimal degrees.
+
+    Returns:
+        float: Distance in meters.
+    """
+    # Earth radius in meters
+    earth_radius = 6378137.0  # approximate radius in meters
+
+    # Convert latitude from degrees to radians
+    lat_radians = math.radians(latitude)
+
+    # Calculate the length of a degree of latitude and longitude at the given latitude
+    lat_length = math.cos(lat_radians) * 2.0 * math.pi * earth_radius / 360.0
+
+    # Translate the distance from degrees to meters
+    distance_meters = distance_degrees * lat_length
+
+    return distance_meters
 
 def get_resolution(ds):
     return [

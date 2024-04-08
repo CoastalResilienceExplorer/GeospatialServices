@@ -29,11 +29,7 @@ def main(flooding: xr.Dataset | xr.DataArray, threshold: float):
             minx=minx, miny=miny, maxx=maxx, maxy=maxy, auto_expand=True
         )
         population = xr.where(population == population.rio.nodata, 0, population)
-        print(threshold)
-        flooding.rio.to_raster('./test_prethresh.tiff')
         flooding = xr.where(flooding > threshold, 1.0, 0.0)
-
-        flooding.rio.to_raster('./test_flooding.tiff')
         population_res = get_resolution(population)
 
         res_modifier = (
@@ -44,7 +40,6 @@ def main(flooding: xr.Dataset | xr.DataArray, threshold: float):
         population = population.reindex_like(flooding, method="nearest")
         population = population * res_modifier
         population = population * flooding
-        population.rio.to_raster('./test_population.tiff')
         return population
 
 

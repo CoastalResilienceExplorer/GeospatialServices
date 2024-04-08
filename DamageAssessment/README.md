@@ -1,52 +1,39 @@
 ## Damage Assessment from Global Urban Footprint
-This directory contains code for running damage assessments using Global Urban Footprint.  It references damage functions and max damage values from [JRC](https://publications.jrc.ec.europa.eu/repository/handle/JRC105688).
+This directory contains code for running damage and exposure assessments.  It references:
+- Damage functions and max damage values from [JRC](https://publications.jrc.ec.europa.eu/repository/handle/JRC105688).
+- Urban Footprint data from [Global Urban Footprint](https://www.dlr.de/eoc/en/desktopdefault.aspx/tabid-9628/).
+- Population from [Global Human Settlement Layer](https://ghsl.jrc.ec.europa.eu/download.php?ds=pop).
 
-The current iteration is hardcoded to the Americas for DDFs, but it would be easy to extend this.
+The current iteration is hardcoded to the Americas for DDFs, and Belize for the Max Value, but it would be easy to extend this.
 
 ### Workflow
-The code takes a raster input representing a georeferenced floodmap, and returns a raster output representing a damage layer.  It reindexes the Global Urban Footprint data to match the floodmap, and calculates the damage at each cell.
+The code takes a raster input representing a georeferenced floodmap, and returns a raster output representing a damage or exposure layer.  It reindexes the Global Urban Footprint data to match the floodmap, and calculates the damage at each cell.
 
-If running as a server, the return response is a GZipped Geotiff, and data is also posted up to Google Cloud Storage.
+If running as a server, the return response is a Geotiff.  If running as a Python import, the returned response is a Rioxarray object.  
+Data is also posted up to Google Cloud Storage when running from server.
 
 ### To Run From Server
-See `tools/trigger_damages.sh` and `tools/trigger_population.sh`
-
-
+See `tools/trigger.py`
 
 #### Damages
 ```
 python3 tools/trigger.py -f ./data/belize_test_flooding.tiff -t damages -p belize -i belize_test.tiff --output ./test_damages.tiff
 ```
 
-```
-INPUT="/Users/chlowrie/Desktop/TestData/belize_sfincs_MANGROVELIMIT_LWM_MANNING_090020_hmax.tif"
-REMOTE_OUTPUT="belize/belize_test_damages.tiff"
-DAMAGES_OUTPUT="/Users/chlowrie/Desktop/TestData/BelizeTest_damages.tiff"
+You can optionally set a population filter on the output, using `--window_size 500 --population_min 10` (or some other values)
+- `window_size` controls the windowing of population in meters
+- `population_min` controls the minimum population summed over the window for which to return results.  
 
-bash tools/trigger_damages.sh \
-    $INPUT \
-    $REMOTE_OUTPUT \
-    $DAMAGES_OUTPUT
-```
+So, `--window_size 500 --population_min 10` means "return only damages where at least 10 people live in a 500m window around the pixel"
 
 #### Population
 ```
 python3 tools/trigger.py -f ./data/belize_test_flooding.tiff -t population -p belize -i belize_test.tiff --output ./test_population.tiff
 ```
 
-```
-INPUT="/Users/chlowrie/Desktop/TestData/belize_sfincs_MANGROVELIMIT_LWM_MANNING_090020_hmax.tif"
-THRESHOLD=0.5
-REMOTE_OUTPUT="belize/belize_test_population.tiff"
-POPULATION_OUTPUT="/Users/chlowrie/Desktop/TestData/BelizeTest_population.tiff"
+You can optionally specify the population threshold for which to return results.  The default is 0.5 meters, which indicates that people are only considered exposed to flooding if the flood depth is greater than this.
 
-bash tools/trigger_population.sh \
-    $INPUT \
-    $THRESHOLD \
-    $REMOTE_OUTPUT \
-    $POPULATION_OUTPUT
-```
-
+#### Remote Output
 `REMOTE_OUTPUT` is stored in `cogmaker-output-staging`.
 
 ### Building Locally
@@ -60,5 +47,20 @@ docker run -it \
     -v $HOME/.config/gcloud/:/root/.config/gcloud \
     -p 3001:8080 \
     -e OUTPUT_BUCKET=cloud-native-geospatial \
+    us-west1-docker.pkg.dev/global-mangroves/damages/damages-staging
+```
+
+After doing this, you can test with the same trigger script by attaching `--local` to the call.
+
+### Testing
+The image built above includes `pytest`.
+```
+docker run -it \
+    -v $PWD:/app \
+    -v $HOME/.config/gcloud/:/root/.config/gcloud \
+    -p 3001:8080 \
+    -e OUTPUT_BUCKET=cloud-native-geospatial \
+    -e TEST_WRITE=1 \
+    --entrypoint pytest \
     us-west1-docker.pkg.dev/global-mangroves/damages/damages-staging
 ```

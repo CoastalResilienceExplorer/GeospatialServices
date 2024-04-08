@@ -28,6 +28,12 @@ def api_damage_assessment():
         io.BytesIO(request.files['flooding'].read())
     ).isel(band=0)
     x = makeSafe_rio(flooding)
+    if 'window_size' in request.form:
+        return damage_assessment(
+            x, 
+            float(request.form['window_size']),
+            float(request.form['population_min'])
+        )
     return damage_assessment(x)
 
 @app.route('/population/GHSL_2020_100m/', methods=["POST"])
