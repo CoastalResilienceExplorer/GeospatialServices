@@ -49,5 +49,6 @@ docker run -it \
     -v $PWD:/app \
     -v $HOME/.config/gcloud/:/root/.config/gcloud \
     -p 3001:8080 \
+    -e OUTPUT_BUCKET=cloud-native-geospatial \
     us-west1-docker.pkg.dev/global-mangroves/damages/damages-staging
 ```
