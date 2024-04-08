@@ -11,7 +11,13 @@ If running as a server, the return response is a GZipped Geotiff, and data is al
 ### To Run From Server
 See `tools/trigger_damages.sh` and `tools/trigger_population.sh`
 
+
+
 #### Damages
+```
+python3 tools/trigger.py -f ./data/belize_test_flooding.tiff -t damages -p belize -i belize_test.tiff --output ./test_damages.tiff
+```
+
 ```
 INPUT="/Users/chlowrie/Desktop/TestData/belize_sfincs_MANGROVELIMIT_LWM_MANNING_090020_hmax.tif"
 REMOTE_OUTPUT="belize/belize_test_damages.tiff"
@@ -20,10 +26,14 @@ DAMAGES_OUTPUT="/Users/chlowrie/Desktop/TestData/BelizeTest_damages.tiff"
 bash tools/trigger_damages.sh \
     $INPUT \
     $REMOTE_OUTPUT \
-    $LOCAL_OUTPUT
+    $DAMAGES_OUTPUT
 ```
 
 #### Population
+```
+python3 tools/trigger.py -f ./data/belize_test_flooding.tiff -t population -p belize -i belize_test.tiff --output ./test_population.tiff
+```
+
 ```
 INPUT="/Users/chlowrie/Desktop/TestData/belize_sfincs_MANGROVELIMIT_LWM_MANNING_090020_hmax.tif"
 THRESHOLD=0.5
@@ -49,5 +59,6 @@ docker run -it \
     -v $PWD:/app \
     -v $HOME/.config/gcloud/:/root/.config/gcloud \
     -p 3001:8080 \
+    -e OUTPUT_BUCKET=cloud-native-geospatial \
     us-west1-docker.pkg.dev/global-mangroves/damages/damages-staging
 ```

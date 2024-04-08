@@ -25,7 +25,7 @@ steps:
     '--cpu', '2',
     '--memory', '8G',
     '--timeout', '3600',
-    '--concurrency', '1'
+    '--concurrency', '4'
     ]
 """ > /tmp/cloudbuild.yaml
 

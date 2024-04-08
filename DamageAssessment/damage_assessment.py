@@ -16,6 +16,8 @@ COUNTRY = "Belize"
 
 
 def main(flooding: xr.Dataset | xr.DataArray):
+    init_crs = flooding.rio.crs
+    flooding = flooding.rio.reproject("EPSG:4326")
     buildings = rxr.open_rasterio(
         BUILDING_AREA
     ).isel(band=0)
@@ -45,6 +47,4 @@ def main(flooding: xr.Dataset | xr.DataArray):
         max_damage_df = pd.read_csv(MAXDAMAGE)
         max_damage = max_damage_df[max_damage_df["Country"] == COUNTRY]["Total"].values[0]
         damage_totals = damage_percents * max_damage
-        return (damage_totals * buildings)
-
-
+        return (damage_totals * buildings).rio.reproject(init_crs)
