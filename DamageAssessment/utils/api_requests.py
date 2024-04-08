@@ -5,9 +5,9 @@ import flask
 import geopandas as gpd
 import uuid, os
 import xarray as xr
-import subprocess
+import numpy as np
 from utils.gcs import upload_blob
-from utils.dataset import compressRaster
+from utils.dataset import compressRaster, maskEdge
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
@@ -23,7 +23,6 @@ def data_to_parameters_factory(app):
                 """A wrapper function"""
                 # Extend some capabilities of func
                 data = request.get_json()
-                logging.info(data)
                 to_return = func(**data)
                 return to_return
             return wrapper
@@ -37,7 +36,6 @@ def response_to_gpkg(func):
         xid = str(uuid.uuid1())
         # Extend some capabilities of func
         gdf_to_return = func(*args, **kwargs)
-        logging.info(gdf_to_return)
         assert isinstance(gdf_to_return, gpd.GeoDataFrame)
         fname=f'{xid}.gpkg'
         gdf_to_return.to_file(os.path.join(TMP_FOLDER, fname))
@@ -54,7 +52,6 @@ def response_to_tiff_factory(app):
                 id = str(uuid.uuid4())
                 # Extend some capabilities of func
                 xr_to_return = func(*args, **kwargs)
-                logging.info(xr_to_return)
                 assert isinstance(xr_to_return, xr.DataArray) | isinstance(xr_to_return, xr.Dataset)
                 fname = f"{id}.tiff"
                 tmp_rast_compressed = os.path.join(TMP_FOLDER, fname)
@@ -74,11 +71,30 @@ def response_to_tiff(func):
         id = str(uuid.uuid4())
         # Extend some capabilities of func
         xr_to_return = func(*args, **kwargs)
-        logging.info(xr_to_return)
         assert isinstance(xr_to_return, xr.DataArray) | isinstance(xr_to_return, xr.Dataset)
         fname = f"{id}.tiff"
         tmp_rast_compressed = os.path.join(TMP_FOLDER, fname)
         compressRaster(xr_to_return, tmp_rast_compressed)
         return flask.send_from_directory(TMP_FOLDER, fname)
     
+    return wrapper
+
+
+def process_reprojection_edge(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        """A wrapper function"""
+        xr_to_return = func(*args, **kwargs)
+        return maskEdge(xr_to_return)
+    
+    return wrapper
+
+def nodata_to_zero(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        """A wrapper function"""
+        xr_to_return = func(*args, **kwargs)
+        x = xr.where(xr_to_return == xr_to_return.rio.nodata, 0, xr_to_return)
+        x = xr.where(xr_to_return == 0, np.nan, xr_to_return).rio.write_crs(xr_to_return.rio.crs).rio.write_nodata(0, inplace=True)
+        return x
     return wrapper

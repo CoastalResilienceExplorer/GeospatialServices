@@ -17,6 +17,7 @@ def main(flooding: xr.Dataset | xr.DataArray, threshold: float):
     population = rxr.open_rasterio(
         POPULATION
     ).isel(band=0)
+    flooding = flooding.rio.reproject("EPSG:4326")
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
@@ -28,8 +29,8 @@ def main(flooding: xr.Dataset | xr.DataArray, threshold: float):
         population = population.rio.clip_box(
             minx=minx, miny=miny, maxx=maxx, maxy=maxy, auto_expand=True
         )
-        population = xr.where(population == population.rio.nodata, 0, population)
-        flooding = xr.where(flooding > threshold, 1.0, 0.0)
+        population = xr.where(population == population.rio.nodata, 0, population).rio.write_crs("EPSG:4326")
+        flooding = xr.where(flooding > threshold, 1.0, 0.0).rio.write_crs("EPSG:4326")
         population_res = get_resolution(population)
 
         res_modifier = (
