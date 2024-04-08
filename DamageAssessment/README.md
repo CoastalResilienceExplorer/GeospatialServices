@@ -11,7 +11,13 @@ If running as a server, the return response is a GZipped Geotiff, and data is al
 ### To Run From Server
 See `tools/trigger_damages.sh` and `tools/trigger_population.sh`
 
+
+
 #### Damages
+```
+python3 tools/trigger.py -f ./data/belize_test_flooding.tiff -t damages -p belize -i belize_test.tiff --output ./test_damages.tiff
+```
+
 ```
 INPUT="/Users/chlowrie/Desktop/TestData/belize_sfincs_MANGROVELIMIT_LWM_MANNING_090020_hmax.tif"
 REMOTE_OUTPUT="belize/belize_test_damages.tiff"
@@ -24,6 +30,10 @@ bash tools/trigger_damages.sh \
 ```
 
 #### Population
+```
+python3 tools/trigger.py -f ./data/belize_test_flooding.tiff -t population -p belize -i belize_test.tiff --output ./test_population.tiff
+```
+
 ```
 INPUT="/Users/chlowrie/Desktop/TestData/belize_sfincs_MANGROVELIMIT_LWM_MANNING_090020_hmax.tif"
 THRESHOLD=0.5
