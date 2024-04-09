@@ -22,10 +22,9 @@ steps:
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com',
     '--update-env-vars', 'OUTPUT_BUCKET=$OUTPUT_BUCKET',
-    '--cpu', '2',
-    '--memory', '8G',
-    '--timeout', '3600',
-    '--concurrency', '4'
+    '--cpu', '8',
+    '--memory', '32G',
+    '--timeout', '3600'
     ]
 """ > /tmp/cloudbuild.yaml
 

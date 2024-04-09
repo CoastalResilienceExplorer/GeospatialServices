@@ -39,7 +39,6 @@ You can optionally specify the population threshold for which to return results.
 ### Building Locally
 ```
 docker build \
-    --build-arg BASE_IMAGE=us-west1-docker.pkg.dev/global-mangroves/base/python_gis_base_staging \
     -t us-west1-docker.pkg.dev/global-mangroves/damages/damages-staging .
 
 docker run -it \

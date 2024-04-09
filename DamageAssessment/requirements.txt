@@ -1,4 +1,11 @@
+xarray
+pandas
+geopandas
+rioxarray
+rasterio
+h5netcdf
+matplotlib
+flask
+fastapi
 google-cloud-storage
-pystac
-pystac-client
 pytest
