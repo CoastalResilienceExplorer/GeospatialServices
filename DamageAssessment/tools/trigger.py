@@ -28,8 +28,8 @@ if __name__ == "__main__":
         HOST = 'http://localhost:3001'
     else:
         HOST = "https://damages-staging-myzvqet7ua-uw.a.run.app"
-    DAMAGES_ROUTE = os.path.join(HOST, "damage/dlr_guf/")
-    POPULATION_ROUTE = os.path.join(HOST, "population/GHSL_2020_100m/")
+    DAMAGES_ROUTE = f"{HOST}/damage/dlr_guf/"
+    POPULATION_ROUTE = f"{HOST}/population/GHSL_2020_100m/"
 
     if (args.type == "population"):
         data = {
