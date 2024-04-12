@@ -40,7 +40,7 @@ if __name__ == "__main__":
         data = dict()
         ENDPOINT = DAMAGES_ROUTE
     if args.id:
-        data['output_to_gcs'] = os.path.join(args.project, args.id)
+        data['output_to_gcs'] = f"{args.project}/{args.id}"
         if args.window_size:
             data['window_size'] = args.window_size
             data['population_min'] = args.population_min
