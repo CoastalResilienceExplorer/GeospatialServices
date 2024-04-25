@@ -2,9 +2,8 @@ ENV=${1:?"Must set environment as first arg"}
 echo $ENV
 BASE_GAR_DIRECTORY=us-west1-docker.pkg.dev/global-mangroves
 BASE_IMAGE=${BASE_GAR_DIRECTORY}/base/python_gis_base_${ENV}
-IMAGE=${BASE_GAR_DIRECTORY}/damages/damages-${ENV}
-SERVICE=damages-${ENV}
-OUTPUT_BUCKET=cogmaker-output-$ENV
+IMAGE=${BASE_GAR_DIRECTORY}/rasterstats/rasterstats-${ENV}
+SERVICE=rasterstats-${ENV}
 
 echo """
 steps:
@@ -21,9 +20,8 @@ steps:
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com',
-    '--update-env-vars', 'OUTPUT_BUCKET=$OUTPUT_BUCKET',
-    '--cpu', '8',
-    '--memory', '32G',
+    '--cpu', '2',
+    '--memory', '8G',
     '--timeout', '3600'
     ]
 """ > /tmp/cloudbuild.yaml
