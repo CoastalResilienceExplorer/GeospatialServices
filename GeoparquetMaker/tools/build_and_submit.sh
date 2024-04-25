@@ -26,9 +26,9 @@ steps:
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com',
-    '--set-env-vars', 'OUTPUT_BUCKET=${OUTPUT_BUCKET}',
-    '--cpu', '4',
-    '--memory', '16G',
+    '--update-env-vars', 'OUTPUT_BUCKET=$OUTPUT_BUCKET',
+    '--cpu', '8',
+    '--memory', '32G',
     '--timeout', '3600'
     ]
 - name: 'gcr.io/cloud-builders/gcloud'
@@ -37,6 +37,7 @@ steps:
     '--image', '$GEOPMAKER_IMAGE', 
     '--set-env-vars', 'FORWARD_SERVICE=$(gcloud run services describe $GEOPMAKER_SERVICE --platform managed --region us-west1 --format 'value(status.url)')',
     '--set-env-vars', 'FORWARD_PATH=/build_geoparquet/',
+    '--set-env-vars', 'OUTPUT_BUCKET=$OUTPUT_BUCKET',
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com'

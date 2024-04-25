@@ -27,7 +27,7 @@ gdf = gpd.GeoDataFrame(
 ```
 
 ### Local Testing
-ENV=dev
+ENV=staging
 BASE_GAR_DIRECTORY=us-west1-docker.pkg.dev/global-mangroves
 BASE_IMAGE=${BASE_GAR_DIRECTORY}/base/python_gis_base_${ENV}
 docker build -t geopmaker --build-arg BASE_IMAGE=$BASE_IMAGE .
