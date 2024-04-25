@@ -21,7 +21,7 @@ if __name__ == "__main__":
     parser.add_argument('--threshold', required=False, default=0.5, type=float, help="The threshold to use, below which population will not be flooded")
     parser.add_argument('--window_size', type=int, default=0)
     parser.add_argument('--population_min', type=int, default=5)
-    parser.add_argument('--nsi', type=str, choices=["california", "hawaii", "florida"], default="california")
+    parser.add_argument('--nsi', type=str, required=False, choices=["california", "hawaii", "florida"], default="california")
 
     parser.add_argument('--local', action='store_true', default=False,  help="Run with local server")
     args = parser.parse_args()

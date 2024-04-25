@@ -22,6 +22,7 @@ steps:
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com',
     '--update-env-vars', 'OUTPUT_BUCKET=$OUTPUT_BUCKET',
+    '--update-env-vars', 'MNT_BASE="gs://"',
     '--cpu', '8',
     '--memory', '32G',
     '--timeout', '3600'
