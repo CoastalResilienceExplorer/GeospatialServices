@@ -95,6 +95,7 @@ def nodata_to_zero(func):
         """A wrapper function"""
         xr_to_return = func(*args, **kwargs)
         x = xr.where(xr_to_return == xr_to_return.rio.nodata, 0, xr_to_return)
-        x = xr.where(xr_to_return == 0, np.nan, xr_to_return).rio.write_crs(xr_to_return.rio.crs).rio.write_nodata(0, inplace=True)
+        x = x.rio.write_crs(xr_to_return.rio.crs)
+        x = x.rio.write_nodata(0)
         return x
     return wrapper

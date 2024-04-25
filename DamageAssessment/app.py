@@ -23,7 +23,6 @@ GCS_BASE=os.environ['OUTPUT_BUCKET']
 @app.route('/damage/dlr_guf/', methods=["POST"])
 @response_to_tiff_factory(app)
 @nodata_to_zero
-@process_reprojection_edge
 def api_damage_assessment():
     flooding = rxr.open_rasterio(
         io.BytesIO(request.files['flooding'].read())
@@ -40,7 +39,6 @@ def api_damage_assessment():
 @app.route('/population/GHSL_2020_100m/', methods=["POST"])
 @response_to_tiff_factory(app)
 @nodata_to_zero
-@process_reprojection_edge
 def api_population_assessment():
     flooding = rxr.open_rasterio(
         io.BytesIO(request.files['flooding'].read())
