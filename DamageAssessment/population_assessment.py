@@ -14,23 +14,26 @@ POPULATION = 'gs://supporting-data2/GHS_POP_E2020.tif'
 
 
 def main(flooding: xr.Dataset | xr.DataArray, threshold: float):
+    init_crs = flooding.rio.crs
     population = rxr.open_rasterio(
         POPULATION
     ).isel(band=0)
-    flooding = flooding.rio.reproject("EPSG:4326")
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
             category=NotGeoreferencedWarning,
             module="rasterio",
         )
-        flooding_res = get_resolution(flooding)
-        minx, miny, maxx, maxy = flooding.rio.bounds()
+        flooding_reproj = flooding.rio.reproject("EPSG:4326")
+        minx, miny, maxx, maxy = flooding_reproj.rio.bounds()
         population = population.rio.clip_box(
             minx=minx, miny=miny, maxx=maxx, maxy=maxy, auto_expand=True
-        )
-        population = xr.where(population == population.rio.nodata, 0, population).rio.write_crs("EPSG:4326")
-        flooding = xr.where(flooding > threshold, 1.0, 0.0).rio.write_crs("EPSG:4326")
+        ).rio.reproject(init_crs)
+
+        population = xr.where(population == population.rio.nodata, 0, population).rio.write_crs(init_crs)
+        flooding = xr.where(flooding > threshold, 1.0, 0.0).rio.write_crs(init_crs)
+
+        flooding_res = get_resolution(flooding)
         population_res = get_resolution(population)
 
         res_modifier = (

@@ -33,6 +33,16 @@ python3 tools/trigger.py -f ./data/belize_test_flooding.tiff -t population -p be
 
 You can optionally specify the population threshold for which to return results.  The default is 0.5 meters, which indicates that people are only considered exposed to flooding if the flood depth is greater than this.
 
+
+#### NSI
+```
+python3 tools/trigger.py -f ./data/belize_test_flooding.tiff -t damages_nsi -p california -i belize_test.tiff --output ./test_population.tiff --nsi california
+```
+
+You can optionally specify the population threshold for which to return results.  The default is 0.5 meters, which indicates that people are only considered exposed to flooding if the flood depth is greater than this.
+
+
+
 #### Remote Output
 `REMOTE_OUTPUT` is stored in `cogmaker-output-staging`.
 
