@@ -7,7 +7,7 @@ import rioxarray as rxr
 import copy, io
 import uuid
 
-from utils.api_requests import response_to_tiff_factory, response_to_gpkg, nodata_to_zero
+from utils.api_requests import response_to_tiff_factory, response_to_gpkg_factory, nodata_to_zero
 from utils.dataset import makeSafe_rio, compressRaster
 from utils.gcs import upload_blob, compress_file
 from damage_assessment import main as damage_assessment
@@ -18,8 +18,6 @@ logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
 app = Flask(__name__)
-
-GCS_BASE=os.environ['OUTPUT_BUCKET']
 
 @app.route('/damage/dlr_guf/', methods=["POST"])
 @response_to_tiff_factory(app)
@@ -49,8 +47,9 @@ def api_population_assessment():
 
 
 @app.route('/damage/nsi/', methods=["POST"])
-@response_to_gpkg 
+@response_to_gpkg_factory(app)
 def api_nsi_assessment():
+    print(request.form)
     flooding = rxr.open_rasterio(
         io.BytesIO(request.files['flooding'].read())
     ).isel(band=0)
