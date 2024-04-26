@@ -45,10 +45,10 @@ You can optionally specify the flood depth threshold for which to return results
 
 #### NSI
 ```
-python3 tools/trigger.py -f "/Users/chlowrie/Downloads/InundationMaps_V&LA_BOUS/Ventura/SLR_1.5/VE02_flddepth_SLR150_W100.tif" -t damages_nsi --nsi california
+python3 tools/trigger.py -f "/Users/chlowrie/Downloads/InundationMaps_V&LA_BOUS/Ventura/SLR_1.5/VE02_flddepth_SLR150_W100.tif" -t damages_nsi --nsi california --output ./test_nsi.gpkg 
 
 # Remote output is currently not supported for NSI outputs, just downloads to local
-# --project test --output ./test_nsi.gpkg 
+# --project test --id test/test_nsi.geoparquet
 
 ```
 
