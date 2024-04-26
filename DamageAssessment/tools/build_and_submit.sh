@@ -4,7 +4,8 @@ BASE_GAR_DIRECTORY=us-west1-docker.pkg.dev/global-mangroves
 BASE_IMAGE=${BASE_GAR_DIRECTORY}/base/python_gis_base_${ENV}
 IMAGE=${BASE_GAR_DIRECTORY}/damages/damages-${ENV}
 SERVICE=damages-${ENV}
-OUTPUT_BUCKET=cogmaker-output-$ENV
+OUTPUT_BUCKET_RASTER=cogmaker-output-$ENV
+OUTPUT_BUCKET_VECTOR=geopmaker-output-$ENV
 
 echo """
 steps:
@@ -21,7 +22,8 @@ steps:
     '--allow-unauthenticated', 
     '--region', 'us-west1', 
     '--service-account', 'cog-maker@global-mangroves.iam.gserviceaccount.com',
-    '--update-env-vars', 'OUTPUT_BUCKET=$OUTPUT_BUCKET',
+    '--update-env-vars', 'OUTPUT_BUCKET_RASTER=$OUTPUT_BUCKET_RASTER',
+    '--update-env-vars', 'OUTPUT_BUCKET_VECTOR=$OUTPUT_BUCKET_VECTOR',
     '--update-env-vars', 'MNT_BASE="gs://"',
     '--cpu', '8',
     '--memory', '32G',

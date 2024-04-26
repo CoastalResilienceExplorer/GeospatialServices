@@ -3,7 +3,7 @@ from utils.cache import memoize_with_persistence
 
 import geopandas as gpd
 import pandas as pd
-import s2sphere
+# import s2sphere
 import os
 
 

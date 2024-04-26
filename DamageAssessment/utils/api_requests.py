@@ -8,12 +8,15 @@ import xarray as xr
 import numpy as np
 from utils.gcs import upload_blob
 from utils.dataset import compressRaster, maskEdge
+from utils.geoparquet_utils import write_partitioned_gdf
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
 TMP_FOLDER='/tmp'
-GCS_BASE=os.environ['OUTPUT_BUCKET']
+GCS_BASE_RASTER=os.environ['OUTPUT_BUCKET_RASTER']
+GCS_BASE_VECTOR=os.environ['OUTPUT_BUCKET_VECTOR']
+MNT_BASE=os.environ['MNT_BASE']
 
 def data_to_parameters_factory(app):
     def data_to_parameters(func):
@@ -29,19 +32,27 @@ def data_to_parameters_factory(app):
     return data_to_parameters
 
 
-def response_to_gpkg(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        """A wrapper function"""
-        xid = str(uuid.uuid1())
-        # Extend some capabilities of func
-        gdf_to_return = func(*args, **kwargs)
-        assert isinstance(gdf_to_return, gpd.GeoDataFrame)
-        fname=f'{xid}.gpkg'
-        gdf_to_return.to_file(os.path.join(TMP_FOLDER, fname))
-        return flask.send_from_directory(TMP_FOLDER, fname)
+def response_to_gpkg_factory(app):
+    def response_to_gpkg(func):
+        with app.test_request_context():
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                """A wrapper function"""
+                xid = str(uuid.uuid1())
+                # Extend some capabilities of func
+                gdf_to_return = func(*args, **kwargs)
+                assert isinstance(gdf_to_return, gpd.GeoDataFrame)
+                fname=f'{xid}.gpkg'
+                gdf_to_return.to_file(os.path.join(TMP_FOLDER, fname))
 
-    return wrapper
+                data = request.form
+                if "output_to_gcs" in data.keys():
+                    print(os.path.join(MNT_BASE, GCS_BASE_VECTOR, request.form['output_to_gcs']))
+                    write_partitioned_gdf(gdf_to_return, os.path.join(MNT_BASE, GCS_BASE_VECTOR, request.form['output_to_gcs']))
+                return flask.send_from_directory(TMP_FOLDER, fname)
+
+            return wrapper
+    return response_to_gpkg
 
 
 def response_to_tiff_factory(app):
@@ -58,7 +69,7 @@ def response_to_tiff_factory(app):
                 compressRaster(xr_to_return, tmp_rast_compressed)
                 data = request.form
                 if "output_to_gcs" in data.keys():
-                    upload_blob(GCS_BASE, tmp_rast_compressed, request.form['output_to_gcs'])
+                    upload_blob(GCS_BASE_RASTER, tmp_rast_compressed, request.form['output_to_gcs'])
                 return flask.send_from_directory(TMP_FOLDER, fname)
         return wrapper
     return response_to_tiff

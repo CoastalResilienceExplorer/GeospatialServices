@@ -3,8 +3,8 @@ This directory contains code for running damage and exposure assessments.  It re
 - Damage functions and max damage values from [JRC](https://publications.jrc.ec.europa.eu/repository/handle/JRC105688).
 - Urban Footprint data from [Global Urban Footprint](https://www.dlr.de/eoc/en/desktopdefault.aspx/tabid-9628/).
 - Population from [Global Human Settlement Layer](https://ghsl.jrc.ec.europa.eu/download.php?ds=pop).
+- [National Structure Inventory](https://nsi.sec.usace.army.mil/downloads/) data for California, Hawaii, and Florida
 
-The current iteration is hardcoded to the Americas for DDFs, and Belize for the Max Value, but it would be easy to extend this.
 
 ### Workflow
 The code takes a raster input representing a georeferenced floodmap, and returns a raster output representing a damage or exposure layer.  It reindexes the Global Urban Footprint data to match the floodmap, and calculates the damage at each cell.
@@ -14,6 +14,13 @@ Data is also posted up to Google Cloud Storage when running from server.
 
 ### To Run From Server
 See `tools/trigger.py`
+
+This requires very minimal installations, specifically `pip3 install requests requests_toolbelt`.  It works as a REST API running Google Cloud Platform.
+
+It supports three options:
+- `-t damages`
+- `-t population`
+- `-t damages_nsi`
 
 #### Damages
 ```
@@ -26,37 +33,50 @@ You can optionally set a population filter on the output, using `--window_size 5
 
 So, `--window_size 500 --population_min 10` means "return only damages where at least 10 people live in a 500m window around the pixel"
 
+The current iteration is hardcoded to the Americas for DDFs, and Belize for the Max Value, but it would be easy to extend this.
+
 #### Population
 ```
 python3 tools/trigger.py -f ./data/belize_test_flooding.tiff -t population -p belize -i belize_test.tiff --output ./test_population.tiff
 ```
 
-You can optionally specify the population threshold for which to return results.  The default is 0.5 meters, which indicates that people are only considered exposed to flooding if the flood depth is greater than this.
+You can optionally specify the flood depth threshold for which to return results.  The default is 0.5 meters, which indicates that people are only considered exposed to flooding if the flood depth is greater than this.
 
 
 #### NSI
 ```
-python3 tools/trigger.py -f ./data/belize_test_flooding.tiff -t damages_nsi -p california -i belize_test.tiff --output ./test_population.tiff --nsi california
+python3 tools/trigger.py -f "/Users/chlowrie/Downloads/InundationMaps_V&LA_BOUS/Ventura/SLR_1.5/VE02_flddepth_SLR150_W100.tif" -t damages_nsi --nsi california
+
+# Remote output is currently not supported for NSI outputs, just downloads to local
+# --project test --output ./test_nsi.gpkg 
+
 ```
 
-You can optionally specify the population threshold for which to return results.  The default is 0.5 meters, which indicates that people are only considered exposed to flooding if the flood depth is greater than this.
+Currently it is required to specify the state you are running in with the `--nsi` parameter.
 
 
-
+### Other Notes
 #### Remote Output
-`REMOTE_OUTPUT` is stored in `cogmaker-output-staging`.
+`REMOTE_OUTPUT` is stored in `cogmaker-output-staging` for `damages` and `population`.
 
 ### Building Locally
 ```
+ENV=staging
+IMAGE=us-west1-docker.pkg.dev/global-mangroves/damages/damages-${ENV}
 docker build \
-    -t us-west1-docker.pkg.dev/global-mangroves/damages/damages-staging .
+    -t $IMAGE \
+    -f new.Dockerfile \
+    --build-arg BASE_IMAGE=us-west1-docker.pkg.dev/global-mangroves/base/python_gis_base_${ENV} \
+    .
 
 docker run -it \
     -v $PWD:/app \
     -v $HOME/.config/gcloud/:/root/.config/gcloud \
     -p 3001:8080 \
-    -e OUTPUT_BUCKET=cloud-native-geospatial \
-    us-west1-docker.pkg.dev/global-mangroves/damages/damages-staging
+    -e OUTPUT_BUCKET_RASTER=cloud-native-geospatial \
+    -e OUTPUT_BUCKET_VECTOR=cloud-native-geospatial \
+    -e MNT_BASE="gs://" \
+    $IMAGE
 ```
 
 After doing this, you can test with the same trigger script by attaching `--local` to the call.
@@ -68,8 +88,10 @@ docker run -it \
     -v $PWD:/app \
     -v $HOME/.config/gcloud/:/root/.config/gcloud \
     -p 3001:8080 \
-    -e OUTPUT_BUCKET=cloud-native-geospatial \
+    -e OUTPUT_BUCKET_RASTER=cloud-native-geospatial \
+    -e OUTPUT_BUCKET_VECTOR=cloud-native-geospatial \
+    -e MNT_BASE="gs://" \
     -e TEST_WRITE=1 \
     --entrypoint pytest \
-    us-west1-docker.pkg.dev/global-mangroves/damages/damages-staging
+    $IMAGE
 ```
