@@ -11,6 +11,8 @@ import rioxarray as rxr
 import uuid, json, copy
 import numpy as np
 import gc
+from utils.dataset import get_resolution
+import math
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
@@ -58,7 +60,7 @@ def to_extent():
     xmin, xmax = np.min(raster.x).values, np.max(raster.x).values
     ymin, ymax = np.min(raster.y).values, np.max(raster.y).values
     print(xmin, xmax, ymin, ymax)
-    xstep, ystep = 4,4
+    xstep, ystep = [math.ceil(i * 1000) for i in get_resolution(raster)]
     for x in np.arange(xmin, xmax, xstep):
         for y in np.arange(ymin, ymax, ystep):
             with raster.rio.clip_box(
@@ -70,6 +72,8 @@ def to_extent():
                 if len(ds.point) > 0:
                     print(x, y)
                     gdf = gpd.read_file(json.dumps(vector_points(ds)), driver='GeoJSON')
+                    gdf = gdf.set_crs(raster.rio.crs, allow_override=True)
+                    gdf = gdf.to_crs("EPSG:4326")
                     fname = f'{str(x)[0:7].replace("-", "W")}_{str(y)[0:7].replace("-", "S")}_{xstep}.parquet'
                     gdf.to_parquet(os.path.join(output, fname))
                     del gdf

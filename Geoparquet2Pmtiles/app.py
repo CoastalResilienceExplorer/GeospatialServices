@@ -56,7 +56,7 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
         source_file_name, bucket_name, destination_blob_name
     )
 
-    storage_client = storage.Client()
+    storage_client = storage.Client(project='global-mangroves')
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
 
@@ -86,10 +86,16 @@ def geoparquet_to_pmtiles():
     data = request.get_json()
     logging.info(data)
     file = f"gs://{data['bucket']}/{data['name']}"
+    logging.info(file)
+
     x = gpd.read_parquet(file)
     logging.info(x)
+    logging.info(x.crs)
+    x = x.to_crs("EPSG:4326")
     # tmp_id = str(uuid.uuid1())
     tmp_id = data["name"].split('/')[-1].split('.')[0]
+    if tmp_id == "":
+        tmp_id = data["name"].split('/')[-2].split('.')[0]
     use_id=data["use_id"]
     if use_id not in x.columns:
         x[use_id] = x.index
@@ -105,9 +111,14 @@ def geoparquet_to_pmtiles():
         line = process.stdout.readline()
         if not line: break
         print(line, flush=True)
-    upload_blob(os.environ['OUTPUT_BUCKET'], tmp_pmtiles, os.path.splitext(data['name'])[0] + '.pmtiles')
+    remote_name = data['name'].split('/')
+    if remote_name[-1] == "":
+        remote_name = '/'.join(remote_name[0:-1]).replace('.parquet', '.pmtiles')
+    else:
+        remote_name = '/'.join(remote_name).replace('.parquet', '.pmtiles')
+    upload_blob(os.environ['OUTPUT_BUCKET'], tmp_pmtiles, remote_name)
     return ("Completed", 200)
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)), debug=True)
