@@ -5,3 +5,5 @@ odc-geo
 dask
 distributed
 google-cloud-storage
+zarr
+gcsfs

@@ -1,4 +1,5 @@
 from rio_tiler.io import Reader
+from rio_tiler.mosaic.reader import mosaic_reader
 import xarray as xr
 import rioxarray as rxr
 from fastapi import FastAPI
@@ -26,6 +27,35 @@ app.add_middleware(
 )
 
 GCS_BASE=os.environ['BUCKET']
+
+DATASETS = ["elevations/ncei19_n36x75_w121x75_2023v1.tif",
+"elevations/ncei19_n36x75_w122x00_2023v1.tif",
+"elevations/ncei19_n36x75_w122x25_2023v1.tif",
+"elevations/ncei19_n36x75_w122x50_2023v1.tif",
+"elevations/ncei19_n37x00_w121x75_2023v1.tif",
+"elevations/ncei19_n37x00_w122x00_2023v1.tif",
+"elevations/ncei19_n37x00_w122x25_2023v1.tif",
+"elevations/ncei19_n37x00_w122x50_2023v1.tif",
+"elevations/ncei19_n37x25_w121x75_2023v1.tif",
+"elevations/ncei19_n37x25_w122x00_2023v1.tif",
+"elevations/ncei19_n37x25_w122x25_2023v1.tif",
+"elevations/ncei19_n37x25_w122x50_2023v1.tif",
+"elevations/ncei19_n37x50_w122x00_2022v1.tif",
+"elevations/ncei19_n37x50_w122x25_2022v1.tif",
+"elevations/ncei19_n37x50_w122x50_2022v1.tif",
+"elevations/ncei19_n37x50_w122x75_2022v1.tif",
+"elevations/ncei19_n37x75_w122x00_2022v1.tif",
+"elevations/ncei19_n37x75_w122x25_2022v1.tif",
+"elevations/ncei19_n37x75_w122x50_2022v1.tif",
+"elevations/ncei19_n37x75_w122x75_2022v1.tif",
+"elevations/ncei19_n38x00_w122x00_2022v1.tif",
+"elevations/ncei19_n38x00_w122x25_2022v1.tif",
+"elevations/ncei19_n38x00_w122x50_2022v1.tif",
+"elevations/ncei19_n38x00_w122x75_2022v1.tif",
+"elevations/ncei19_n38x25_w122x00_2022v1.tif",
+"elevations/ncei19_n38x25_w122x25_2022v1.tif",
+"elevations/ncei19_n38x25_w122x50_2022v1.tif",
+"elevations/ncei19_n38x25_w122x75_2022v1.tif"]
 
 def to_rgb(data, nodata):
     '''Converts greyscale to RGB for Mapbox Terrain consumption'''
@@ -97,7 +127,7 @@ def get_rgb_tile(
     print(options)
     # options={"unscale":unscale}
     with Reader(dataset, options={"unscale":unscale}) as cog:
-        t = cog.tile(x, y, z)
+        t = cog.tile(x, y, z, tilesize=512, resampling_method='cubic')
         buff = render(
             to_rgb(t.data[0], cog.info().nodata_value),
             t.mask,  # We use dataset mask for rendering
@@ -105,6 +135,31 @@ def get_rgb_tile(
             **options,
         )
         return Response(content=buff, media_type="ïmage/png")
+    
+
+def tiler(asset, *args, **kwargs):
+    with Reader(asset) as src:
+        return src.tile(*args, **kwargs)
+
+@app.get("/get_rgb_tile/elevation/{z}/{x}/{y}.png")
+def get_rgb_tile(
+    z:int, 
+    x:int, 
+    y:int, 
+    unscale: bool = True
+    ):
+    '''Returns a Mapbox-ready elevation tile'''
+    options = img_profiles.get('png')
+    
+    # options={"unscale":unscale}
+    t = mosaic_reader([f'{GCS_BASE}/{d}' for d in DATASETS], tiler, x, y, z)
+    buff = render(
+        to_rgb(t.data[0], 0),
+        t.mask,  # We use dataset mask for rendering
+        img_format="PNG",
+        **options,
+    )
+    return Response(content=buff, media_type="ïmage/png")
 
 
 @app.get('/')

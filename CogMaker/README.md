@@ -19,5 +19,6 @@ To prevent PubSub from retrying on a long-running task, I had to use a front ser
 - https://console.cloud.google.com/run/detail/us-west1/cogmaker-staging/logs?project=global-mangroves
 
 ### Local Development
-1. Build an image with `docker build -t cogmaker --build-arg BASE_IMAGE=us-west1-docker.pkg.dev/global-mangroves/base/python_gis_base_dev .`
-2. `docker run -it -v $PWD:/app -v $HOME/.config/gcloud/:/root/.config/gcloud -p 3004:8080 --env OUTPUT_BUCKET=cogmaker-output-staging cogmaker app:app --reload --host 0.0.0.0 --port 8080`
+ENV=staging
+docker build -t cogmaker --build-arg BASE_IMAGE=us-west1-docker.pkg.dev/global-mangroves/base/python_gis_base_${ENV} .
+docker run -it -v $PWD:/app -v $HOME/.config/gcloud/:/root/.config/gcloud -p 3004:8080 --env OUTPUT_BUCKET=cogmaker-output-${ENV} cogmaker app:app --reload --host 0.0.0.0 --port 8080

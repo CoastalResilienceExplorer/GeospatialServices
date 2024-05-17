@@ -1,0 +1,16 @@
+{
+    "AREA_OR_POINT": "Area",
+    "STATISTICS_MAXIMUM": 307880.09494512,
+    "STATISTICS_MEAN": 63079.517786753,
+    "STATISTICS_MINIMUM": 3096.6832045762,
+    "STATISTICS_STDDEV": 56130.762927441,
+    "STATISTICS_VALID_PERCENT": 0.175,
+    "_ARRAY_DIMENSIONS": [
+        "y",
+        "x"
+    ],
+    "add_offset": 0.0,
+    "coordinates": "band",
+    "grid_mapping": "spatial_ref",
+    "scale_factor": 1.0
+}

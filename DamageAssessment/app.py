@@ -10,9 +10,11 @@ import uuid
 from utils.api_requests import response_to_tiff_factory, response_to_gpkg_factory, nodata_to_zero
 from utils.dataset import makeSafe_rio, compressRaster
 from utils.gcs import upload_blob, compress_file
-from damage_assessment import main as damage_assessment
+from damage_assessment import main as damage_assessment, AEV
 from population_assessment import main as population_assessment
 from nsi_assessment import get_nsi, get_nsi_damages
+
+import zarr
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
@@ -34,6 +36,25 @@ def api_damage_assessment():
             float(request.form['population_min'])
         )
     return damage_assessment(x)
+
+
+@app.route('/damage/dlr_guf/aev/', methods=["POST"])
+def api_damage_assessment_aev():
+    ds = xr.open_zarr(request.form['damages_zarr'])
+    rps = [int(i) for i in request.form['rps'].split(',')]
+    formatter = request.form['formatter']
+    id = request.form['id']
+
+    damages = AEV(ds, rps, [formatter.format(rp=rp) for rp in rps], id)
+    # damages.rio.write_crs(ds.rio.crs, inplace=True)
+    # damages.rio.write_nodata(0, inplace=True)
+    damages = damages.assign_attrs(**ds.attrs)
+    print(damages)
+    damages.to_zarr(request.form['damages_zarr'], mode='a')
+    zarr.consolidate_metadata(request.form['damages_zarr'])
+    return ("complete", 200)
+    
+
 
 @app.route('/population/GHSL_2020_100m/', methods=["POST"])
 @response_to_tiff_factory(app)

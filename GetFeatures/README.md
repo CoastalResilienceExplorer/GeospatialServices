@@ -4,7 +4,7 @@ Currently designed to work with OSM and OpenBuildings. but can easily be extende
 ### To Build and Run Locally
 ```
 ENV=dev
-IMAGE=cog2extent-${ENV}
+IMAGE=geopmaker-${ENV}
 BASE_GAR_DIRECTORY=us-west1-docker.pkg.dev/global-mangroves
 BASE_IMAGE=${BASE_GAR_DIRECTORY}/base/python_gis_base_${ENV}
 docker build -t $IMAGE --build-arg BASE_IMAGE=$BASE_IMAGE .
@@ -16,6 +16,7 @@ docker run \
     -v $HOME/.config/gcloud:/root/.config/gcloud \
     -v $PWD:/app \
     -e MNT_BUCKETS="supporting-data2" \
+    -e OUTPUT_BUCKET="geopmaker-output-${ENV}" \
     -it \
     -p 3003:8080 \
     $IMAGE
@@ -23,6 +24,15 @@ docker run \
 
 ### Examples
 To download, see the `tools/trigger` scripts.
+
+#### Get Z
+```
+python3 tools/trigger.py \
+    -f /Users/chlowrie/Desktop/TestData/NBS_Adapts/JAM/WaterDepth_Future2050_S1_Tr100_t33.tiff \
+    -t get_z \
+    --gcs-output gs://geopmaker-output-staging/NBS_ADAPTS/JAM/OSM/WaterDepth_Future2050_S1_Tr100_t33.parquet \
+    --local
+```
 
 ### Next Up
 This is eventually working it's way up to include the following:

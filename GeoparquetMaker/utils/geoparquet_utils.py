@@ -77,16 +77,22 @@ def partition_gdf(
     return partitioned_gdf, cols
 
 
+# def write_partitioned_gdf(gdf, output, cols=[]):
+#     tmp_id = str(uuid.uuid1())
+#     tmp_parquet = f"/tmp/{tmp_id}.parquet"
+#     gdf.to_parquet(tmp_parquet)
+#     print('tmp created')
+#     del gdf
+#     gc.collect()
+#     to_write = pd.read_parquet(tmp_parquet)
+#     print(to_write)
+#     print(to_write.columns)
+#     to_write.to_parquet(
+#         output, partition_cols=cols, max_partitions=1_000_000
+#     )
+
 def write_partitioned_gdf(gdf, output, cols=[]):
     tmp_id = str(uuid.uuid1())
     tmp_parquet = f"/tmp/{tmp_id}.parquet"
-    gdf.to_parquet(tmp_parquet)
-    print('tmp created')
+    gdf.to_parquet(output)
     del gdf
-    gc.collect()
-    to_write = pd.read_parquet(tmp_parquet)
-    print(to_write)
-    print(to_write.columns)
-    to_write.to_parquet(
-        output, partition_cols=cols, max_partitions=1_000_000
-    )

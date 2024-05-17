@@ -1,5 +1,6 @@
 import requests, os, argparse
 from requests_toolbelt import MultipartEncoder
+import time
 
 HOST = "https://damages-staging-myzvqet7ua-uw.a.run.app"
 DAMAGES_ROUTE = os.path.join(HOST, "damage/dlr_guf/")
@@ -11,7 +12,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trigger remote damages or population")
     
     parser.add_argument('-f', '--flooding', type=str, help='Path to the flooding file')
-    parser.add_argument('-t', '--type', choices=['population', 'damages', 'damages_nsi'], help='Type option damages of population')
+    parser.add_argument('-t', '--type', choices=['population', 'damages', 'damages_nsi', 'damages_aev'], help='Type option damages of population')
     parser.add_argument('-p', '--project', type=str, help='Project name, ie Belize')
     parser.add_argument('--output', type=str, help="Path to output resulting GeoTIFF")
 
@@ -23,6 +24,10 @@ if __name__ == "__main__":
     parser.add_argument('--population_min', type=int, default=5)
     parser.add_argument('--nsi', type=str, required=False, choices=["california", "hawaii", "florida"], default="california")
 
+    parser.add_argument('--damages_zarr', type=str, required=False)
+    parser.add_argument('--aev_rps', type=str, required=False, default="10,25,50,100")
+    parser.add_argument('--formatter', type=str, required=False)
+
     parser.add_argument('--local', action='store_true', default=False,  help="Run with local server")
     args = parser.parse_args()
 
@@ -33,6 +38,7 @@ if __name__ == "__main__":
     DAMAGES_ROUTE = f"{HOST}/damage/dlr_guf/"
     POPULATION_ROUTE = f"{HOST}/population/GHSL_2020_100m/"
     NSI_ROUTE = f"{HOST}/damage/nsi/"
+    AEV_ROUTE = f"{HOST}/damage/dlr_guf/aev/"
 
     if (args.type == "population"):
         data = {
@@ -42,22 +48,45 @@ if __name__ == "__main__":
     elif (args.type == "damages"):
         data = dict()
         ENDPOINT = DAMAGES_ROUTE
-    else:
+    elif (args.type == "damages_nsi"):
         data = {
             "nsi": args.nsi
         }
         ENDPOINT = NSI_ROUTE
-    if args.id:
-        data['output_to_gcs'] = f"{args.project}/{args.id}"
-        if args.window_size:
-            data['window_size'] = args.window_size
-            data['population_min'] = args.population_min
+    elif (args.type == "damages_aev"):
+        data = dict()
+        ENDPOINT = AEV_ROUTE
     
-    files = {'flooding': open(args.flooding, 'rb')}
-    response = requests.post(
-        ENDPOINT, data=data, files=files
-    )
+    if (args.type != "damages_aev"):
+        if args.id:
+            data['output_to_gcs'] = f"{args.project}/{args.id}"
+            if args.window_size:
+                data['window_size'] = args.window_size
+                data['population_min'] = args.population_min
+        
+        files = {'flooding': open(args.flooding, 'rb')}
+        response = requests.post(
+            ENDPOINT, data=data, files=files
+        )
 
-    with open(args.output, 'wb') as f:
-        f.write(response.content)
+        while (response.status_code == 503):
+            time.sleep(20)
+            response = requests.post(
+                ENDPOINT, data=data, files=files
+            )
+            
+
+        if (args.output):
+            with open(args.output, 'wb') as f:
+                f.write(response.content)
+
+    else:
+        data['damages_zarr'] = args.damages_zarr
+        data['id'] = args.id
+        data['rps'] = args.aev_rps
+        data['formatter'] = args.formatter
+        response = requests.post(
+            ENDPOINT, data=data
+        )
+
 

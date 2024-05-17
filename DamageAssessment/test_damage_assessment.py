@@ -1,6 +1,8 @@
 from damage_assessment import main as damage_assessment
+from damage_assessment import AEV
 from population_assessment import main as population_assessment
 import subprocess
+import xarray as xr
 import rioxarray as rxr
 import uuid
 import os
@@ -53,6 +55,13 @@ def test_damages_with_filter():
     if WRITE:
         x.rio.to_raster('./test_damages_with_filters.tiff')
 
+def test_zarr_to_AEV():
+    ds = xr.open_zarr('data/damages_test.zarr')
+    rps = [10, 25, 50, 100]
+    formatter = 'WaterDepth_Future2050_S1_Tr{rp}_t33'
+    return AEV(ds, rps, [formatter.format(rp=rp) for rp in rps], id='AEV_Future2050_S1_TotalAEV_t33')
+
 test_damages_no_filters()
 test_population()
 test_damages_with_filter()
+test_zarr_to_AEV()

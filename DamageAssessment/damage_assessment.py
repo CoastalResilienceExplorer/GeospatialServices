@@ -68,3 +68,43 @@ def main(flooding: xr.Dataset | xr.DataArray, window=0, population_min=5):
             damage_totals = damage_totals * population
 
         return (damage_totals * buildings)
+
+
+def AEV(ds, rps, keys, id):
+    values = np.nan_to_num(
+        np.array([
+            ds[k].to_numpy() for k in keys
+        ])
+    )
+
+    rps      = np.array(rps)
+    values  = np.array(values)
+
+    probability = 1.0 / rps
+        
+    #add rp = 1
+    if not any(probability==1): 
+        x = probability.tolist()
+        x.append(1)
+        y = values.tolist()
+        y.append(np.zeros(ds[keys[0]].shape)) # loss 0 for annual flood 
+        
+        probability = np.array(x) 
+        values      = np.array(y)
+
+    ind = np.argsort(probability)
+    ind[::-1]
+    probability = probability[ind[::-1]]
+    values      = values[ind[::-1]]
+
+    DX  = probability[0:-1] - probability[1:]
+    upper = sum((DX * values[1:].T).T)
+    lower = sum((DX * values[0:-1].T).T)
+    aev = (upper + lower) / 2
+    to_return = xr.where(
+        ds[keys[0]].fillna(1),
+        aev,
+        aev,
+        keep_attrs=True
+    ).rename(id)
+    return to_return
