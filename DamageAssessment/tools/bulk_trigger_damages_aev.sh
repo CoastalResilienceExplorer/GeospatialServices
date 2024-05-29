@@ -7,11 +7,11 @@ for clim in Future2050 Historic
 do
     for scen in S1 S2 S3 S4
     do
-        id=AEV_${clim}_${scen}_AEV_t33
+        id=${clim}_${scen}_AEV_Damages
         python3 $SCRIPT_DIR/trigger.py -t damages_aev \
             --id $id \
             --damages_zarr $ZARR \
-            --formatter WaterDepth_${clim}_${scen}_Tr{rp}_t33
+            --formatter ${clim}_${scen}_Tr{rp}_storm72h_hmax_masked
         echo $id
     done
 done

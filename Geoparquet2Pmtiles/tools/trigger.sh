@@ -1,6 +1,5 @@
 
-HOST=https://geoparquet2pmtiles-staging-myzvqet7ua-uw.a.run.app/create_pmtiles/
-# HOST=http://localhost:3001/create_pmtiles/
+HOST=http://molokai.pbsci.ucsc.edu:3000/create_pmtiles/
 INPUT=$1
 
 echo $HOST

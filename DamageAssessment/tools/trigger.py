@@ -34,7 +34,9 @@ if __name__ == "__main__":
     if args.local:
         HOST = 'http://localhost:3001'
     else:
-        HOST = "https://damages-staging-myzvqet7ua-uw.a.run.app"
+        # HOST = "https://damages-staging-myzvqet7ua-uw.a.run.app"
+        HOST = "http://molokai.pbsci.ucsc.edu:3001"
+
     DAMAGES_ROUTE = f"{HOST}/damage/dlr_guf/"
     POPULATION_ROUTE = f"{HOST}/population/GHSL_2020_100m/"
     NSI_ROUTE = f"{HOST}/damage/nsi/"
@@ -69,11 +71,7 @@ if __name__ == "__main__":
             ENDPOINT, data=data, files=files
         )
 
-        while (response.status_code == 503):
-            time.sleep(20)
-            response = requests.post(
-                ENDPOINT, data=data, files=files
-            )
+        print(response.status_code)
             
 
         if (args.output):

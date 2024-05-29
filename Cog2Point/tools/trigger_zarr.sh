@@ -1,6 +1,7 @@
 
-HOST=https://cog2pt-staging-myzvqet7ua-uw.a.run.app/zarr2pt/
+# HOST=https://cog2pt-staging-myzvqet7ua-uw.a.run.app/zarr2pt/
 # HOST=http://localhost:3000/zarr2pt/
+HOST=http://molokai.pbsci.ucsc.edu:3000/zarr2pt/
 INPUT=$1
 OUTPUT=$2
 CRS_WKT=$3
