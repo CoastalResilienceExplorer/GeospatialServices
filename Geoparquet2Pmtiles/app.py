@@ -40,7 +40,7 @@ def geoparquet_to_pmtiles():
     logging.info(x)
     x.to_file(tmp_file)
     
-    tippecanoe_command = f"tippecanoe -o {tmp_pmtiles} --drop-rate=0.1 --no-feature-limit --no-tile-size-limit --use-attribute-for-id={use_id} {tmp_file} --force"
+    tippecanoe_command = f"tippecanoe -o {tmp_pmtiles} --drop-rate=0.1 --no-feature-limit --read-parallel --no-tile-size-limit --use-attribute-for-id={use_id} {tmp_file} --force"
     process = subprocess.Popen(tippecanoe_command.split(' '), stdout=subprocess.PIPE)
     logging.info('Running tippecanoe')
     while True:

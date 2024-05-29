@@ -8,3 +8,5 @@ google-cloud-datastore
 dask
 zarr
 gcsfs
+uvicorn[standard]
+gunicorn

@@ -4,39 +4,33 @@ admin:
   port: 9876
   host: localhost
 apiEndpoints:
-  cogserver:
-    host: '*'
-    paths: 
-    - '/:z/:x/:y.png'
-    - '/get_rgb_tile/:z/:x/:y.png'
   cogmaker:
     host: '*'
     paths:
     - '/build_COG/'
-    - '/build_COG/from_gcs/'
-  cog2pt:
-    host: '*'
-    paths:
-    - '/cog2pt/'
-  geoparquet2pmtiles:
-    host: '*'
-    paths:
-    - '/create_pmtiles/'
+    - '/build_zarr/'
   damage:
     host: '*'
     paths:
     - '/damage/dlr_guf/'
-serviceEndpoints:
-  cogserver:
-    url: 'https://cogserver-staging-myzvqet7ua-uw.a.run.app'
-  cogmaker:
-    url: 'https://cogmaker-staging-myzvqet7ua-uw.a.run.app'
   cog2pt:
-    url: 'https://cog2pt-staging-myzvqet7ua-uw.a.run.app'
+    host: '*'
+    paths:
+    - '/zarr2pt/'
   geoparquet2pmtiles:
-    url: 'https://geoparquet2pmtiles-staging-myzvqet7ua-uw.a.run.app'
+    host: '*'
+    paths:
+    - '/create_pmtiles/'
+    - '/get_tilesets/'
+serviceEndpoints:
+  geoparquet2pmtiles:
+    url: 'http://molokai.pbsci.ucsc.edu:3004'
+  cogmaker:
+    url: 'http://molokai.pbsci.ucsc.edu:3002'
+  cog2pt:
+    url: 'http://molokai.pbsci.ucsc.edu:3003'
   damage:
-    url: 'https://damages-staging-myzvqet7ua-uw.a.run.app'
+    url: 'http://molokai.pbsci.ucsc.edu:3001'
 policies:
   - basic-auth
   - cors
@@ -47,7 +41,17 @@ policies:
   - proxy
   - rate-limit
 pipelines:
-  default:
+  damage:
+    apiEndpoints:
+      - damage
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: damage
+              changeOrigin: true
+  cogmaker:
     apiEndpoints:
       - cogmaker
     policies:
@@ -56,16 +60,6 @@ pipelines:
       - proxy:
           - action:
               serviceEndpoint: cogmaker
-              changeOrigin: true
-  cogserver:
-    apiEndpoints:
-      - cogserver
-    policies:
-    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
-    # - key-auth:
-      - proxy:
-          - action:
-              serviceEndpoint: cogserver 
               changeOrigin: true
   cog2pt:
     apiEndpoints:
@@ -86,14 +80,4 @@ pipelines:
       - proxy:
           - action:
               serviceEndpoint: geoparquet2pmtiles
-              changeOrigin: true
-  damage:
-    apiEndpoints:
-      - damage
-    policies:
-    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
-    # - key-auth:
-      - proxy:
-          - action:
-              serviceEndpoint: damage
               changeOrigin: true

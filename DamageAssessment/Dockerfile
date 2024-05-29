@@ -7,5 +7,5 @@ ENV GS_ACCESS_KEY_ID=GOOG1EAWTN2EVMJWVO3ES5DLNZ6JKJ3KGK5X7ID7WXN7CVKDL47ST37B5RK
 COPY . /app/
 RUN pip3 install -r requirements.txt --break-system-packages
 
-ENTRYPOINT [ "python3" ]
-CMD [ "app.py" ]
+ENTRYPOINT [ "gunicorn" ]
+CMD [ "app:app", "--bind", "0.0.0.0:8080", "--workers", "10", "--max-requests", "2", "--timeout", "3600" ]

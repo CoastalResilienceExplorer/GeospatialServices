@@ -1,0 +1,68 @@
+services:
+  damage_assessment:
+    build:
+      context: ./DamageAssessment
+    volumes:
+      - ./DamageAssessment:/app
+      - ${GCP_CREDS}:/root/.config/gcloud
+    ports:
+      - "3001:8080"
+    environment:
+      OUTPUT_BUCKET_RASTER: ${OUTPUT_BUCKET_RASTER}
+      OUTPUT_BUCKET_VECTOR: ${OUTPUT_BUCKET_VECTOR}
+      MNT_BASE: ${MNT_BASE}
+
+  cogmaker:
+    build:
+      context: ./CogMaker
+      args:
+        BASE_IMAGE: ${BASE_IMAGE}
+    volumes:
+      - ./CogMaker:/app
+      - ${GCP_CREDS}:/root/.config/gcloud
+    ports:
+      - "3002:8080"
+    environment:
+      OUTPUT_BUCKET: ${OUTPUT_BUCKET_RASTER}
+
+  cog2pt:
+    privileged: true
+    build:
+      context: ./Cog2Point
+      args:
+        BASE_IMAGE: ${BASE_IMAGE}
+    volumes:
+      - ./Cog2Point:/app
+      - ${GCP_CREDS}:/root/.config/gcloud
+    ports:
+      - "3003:8080"
+    environment:
+      MNT_BUCKETS: cogmaker-output-staging;geopmaker-output-staging
+      MNT_BASE: ${MNT_BASE}
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse
+
+  geoparquet2pmtiles:
+    privileged: true
+    build:
+      context: ./Geoparquet2Pmtiles
+    volumes:
+      - ./Geoparquet2Pmtiles:/app
+      - ${GCP_CREDS}:/root/.config/gcloud
+    ports:
+      - "3004:8080"
+    environment:
+      OUTPUT_BUCKET: ${OUTPUT_BUCKET_PMTILES}
+  
+  express_gateway:
+    build:
+      context: ./ExpressGateway
+    volumes:
+      - ./ExpressGateway:/app
+    ports:
+      - "3000:8080"
+
+    
+

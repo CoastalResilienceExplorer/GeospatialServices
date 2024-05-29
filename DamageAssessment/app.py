@@ -13,6 +13,7 @@ from utils.gcs import upload_blob, compress_file
 from damage_assessment import main as damage_assessment, AEV
 from population_assessment import main as population_assessment
 from nsi_assessment import get_nsi, get_nsi_damages
+import gc
 
 import zarr
 
@@ -30,12 +31,16 @@ def api_damage_assessment():
     ).isel(band=0)
     x = makeSafe_rio(flooding)
     if 'window_size' in request.form:
-        return damage_assessment(
+        d = damage_assessment(
             x, 
             float(request.form['window_size']),
             float(request.form['population_min'])
         )
-    return damage_assessment(x)
+    else:
+        d = damage_assessment(x)
+    del x, flooding
+    gc.collect()
+    return d
 
 
 @app.route('/damage/dlr_guf/aev/', methods=["POST"])
@@ -64,7 +69,10 @@ def api_population_assessment():
         io.BytesIO(request.files['flooding'].read())
     ).isel(band=0)
     x = makeSafe_rio(flooding)
-    return population_assessment(x, float(request.form['threshold']))
+    p = population_assessment(x, float(request.form['threshold']))
+    del x
+    gc.collect()
+    return p
 
 
 @app.route('/damage/nsi/', methods=["POST"])

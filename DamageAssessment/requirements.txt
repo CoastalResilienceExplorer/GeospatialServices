@@ -15,3 +15,5 @@ pyarrow
 zarr
 fsspec
 gcsfs
+uvicorn[standard]
+gunicorn

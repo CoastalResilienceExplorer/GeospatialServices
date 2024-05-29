@@ -2,7 +2,8 @@ import requests, os, argparse
 from requests_toolbelt import MultipartEncoder
 import time
 
-HOST = "https://damages-staging-myzvqet7ua-uw.a.run.app"
+# HOST = "https://damages-staging-myzvqet7ua-uw.a.run.app"
+HOST = "http://molokai.pbsci.ucsc.edu:3001"
 DAMAGES_ROUTE = os.path.join(HOST, "damage/dlr_guf/")
 POPULATION_ROUTE = os.path.join(HOST, "population/GHSL_2020_100m/")
 
@@ -34,7 +35,8 @@ if __name__ == "__main__":
     if args.local:
         HOST = 'http://localhost:3001'
     else:
-        HOST = "https://damages-staging-myzvqet7ua-uw.a.run.app"
+        # HOST = "https://damages-staging-myzvqet7ua-uw.a.run.app"
+        HOST = "http://molokai.pbsci.ucsc.edu:3001"
     DAMAGES_ROUTE = f"{HOST}/damage/dlr_guf/"
     POPULATION_ROUTE = f"{HOST}/population/GHSL_2020_100m/"
     NSI_ROUTE = f"{HOST}/damage/nsi/"
