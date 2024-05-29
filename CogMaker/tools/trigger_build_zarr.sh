@@ -1,5 +1,6 @@
 # HOST=http://localhost:3004
-HOST=https://cogmaker-staging-myzvqet7ua-uw.a.run.app
+# HOST=https://cogmaker-staging-myzvqet7ua-uw.a.run.app
+HOST=http://molokai.pbsci.ucsc.edu:3000
 INPUT=$1
 OUTPUT=$2
 

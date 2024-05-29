@@ -71,11 +71,7 @@ if __name__ == "__main__":
             ENDPOINT, data=data, files=files
         )
 
-        while (response.status_code == 503):
-            time.sleep(20)
-            response = requests.post(
-                ENDPOINT, data=data, files=files
-            )
+        print(response.status_code)
             
 
         if (args.output):
