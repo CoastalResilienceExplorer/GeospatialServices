@@ -5,7 +5,7 @@ services:
     volumes:
       - ./DamageAssessment:/app
       - ${GCP_CREDS}:/root/.config/gcloud
-      - ${HOME}/TestData/data:/app/data
+      - ${DATA_FOLDER}:/app/data
     ports:
       - "3001:8080"
     environment:
@@ -20,8 +20,8 @@ services:
         BASE_IMAGE: ${BASE_IMAGE}
     volumes:
       - ./CogMaker:/app
-      - ${HOME}/TestData/data:/app/data
       - ${GCP_CREDS}:/root/.config/gcloud
+      - ${DATA_FOLDER}:/app/data
     ports:
       - "3002:8080"
     environment:
@@ -36,7 +36,7 @@ services:
     volumes:
       - ./Cog2Point:/app
       - ${GCP_CREDS}:/root/.config/gcloud
-      - ${HOME}/TestData/data:/app/data
+      - ${DATA_FOLDER}:/app/data
     ports:
       - "3003:8080"
     environment:
@@ -54,7 +54,7 @@ services:
     volumes:
       - ./Geoparquet2Pmtiles:/app
       - ${GCP_CREDS}:/root/.config/gcloud
-      - ${HOME}/TestData/data:/app/data
+      - ${DATA_FOLDER}:/app/data
     ports:
       - "3004:8080"
     environment:
@@ -74,7 +74,7 @@ services:
     entrypoint: "python3 app.py"
     volumes:
       - ./Trigger:/app
-      - ${HOME}/TestData/data:/app/data
+      - ${DATA_FOLDER}:/app/data
     ports:
       - "3005:8080"
     environment: 

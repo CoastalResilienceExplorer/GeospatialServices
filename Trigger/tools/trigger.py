@@ -13,7 +13,7 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--rps', type=str, help='Return Periods')
     args = parser.parse_args()
 
-    ENDPOINT = 'http://localhost:3005/trigger'
+    ENDPOINT = f"{os.getenv('HOST')}/trigger"
 
     files = {'data': open(args.data, 'rb')}
     response = requests.post(
