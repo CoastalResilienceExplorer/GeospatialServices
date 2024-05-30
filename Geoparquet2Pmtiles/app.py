@@ -20,18 +20,16 @@ def geoparquet_to_pmtiles():
     logging.info(request.get_json())
     data = request.get_json()
     logging.info(data)
-    file = f"gs://{data['bucket']}/{data['name']}"
-    logging.info(file)
 
-    x = gpd.read_parquet(file)
+    x = gpd.read_parquet(data['input'])
     logging.info(x)
     if not x.crs:
         x = x.set_crs("EPSG:4326")
     x = x.to_crs("EPSG:4326")
     # tmp_id = str(uuid.uuid1())
-    tmp_id = data["name"].split('/')[-1].split('.')[0]
+    tmp_id = data["output"].split('/')[-1].split('.')[0]
     if tmp_id == "":
-        tmp_id = data["name"].split('/')[-2].split('.')[0]
+        tmp_id = data["output"].split('/')[-2].split('.')[0]
     use_id=data["use_id"]
     if use_id not in x.columns:
         x[use_id] = x.index
@@ -47,7 +45,7 @@ def geoparquet_to_pmtiles():
         line = process.stdout.readline()
         if not line: break
         print(line, flush=True)
-    remote_name = data['name'].split('/')
+    remote_name = data['output'].split('/')
     if remote_name[-1] == "":
         remote_name = '/'.join(remote_name[0:-1]).replace('.parquet', '.pmtiles')
     else:

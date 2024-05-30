@@ -2,9 +2,10 @@ ARG BASE_IMAGE
 
 FROM ${BASE_IMAGE}
 COPY ./requirements.txt .
+RUN pip3 install -r requirements.txt
+
 COPY ./app.py ./app.py
 COPY utils /app/utils
-RUN pip3 install -r requirements.txt
 
 
 ENV GS_SECRET_ACCESS_KEY=7oipOqgMC2b7NFI37aOJVEvUwb8/84cggjebB73U

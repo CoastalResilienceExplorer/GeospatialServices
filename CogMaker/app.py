@@ -92,10 +92,8 @@ def jsonKeys2int(x):
     return x
 
 
-def create_dimensions(ds, id, parser):
-    # file_arr = id.split('_')
+def create_dimensions(ds, id):
     return ds.rename(id)
-    return ds.rename(id).to_dataset()
 
 
 @app.route("/build_zarr/", methods=["POST"])
@@ -103,29 +101,53 @@ def build_zarr():
     id = str(uuid.uuid1())
     tmp = f'/tmp/{id}.tif'
     tmp_cog = f'/tmp/{id}_cog.tif'
-    path = request.form['gcs_directory'].replace('gs://', '').split('/')
-    bucket = path[0]
-    prefix = '/'.join(path[1:])
-    blobs = list_blobs(bucket, prefix)
-    blobs = [b for b in blobs if len(b.split('/')) == len(path[1:]) + 1 if ".tif" in b]
-    print(blobs)
-    parser = json.loads(request.form['parser'], object_hook=jsonKeys2int)
 
-    rasters = [
-        {
-            'ds': rxr.open_rasterio(
-                f'gs://{bucket}/{b}'
-            ).isel(band=0), 
-            'id': b.split('/')[-1].split('.')[0]
-        } for b in blobs
-    ]
-    data = [
-        create_dimensions(d['ds'], d['id'], parser)
-        for d in rasters
-    ]
-    data = xr.merge(data).chunk(500).assign_attrs(crs=str(rasters[0]['ds'].rio.crs))
-    data.to_zarr(f'gs://{bucket}/{prefix}/{request.form["output"]}')
-    return ("complete", 200)
+    is_gcs = "gcs_directory" in request.form
+    if is_gcs:
+        path = request.form['gcs_directory'].replace('gs://', '').split('/')
+        bucket = path[0]
+        prefix = '/'.join(path[1:])
+        blobs = list_blobs(bucket, prefix)
+        blobs = [b for b in blobs if len(b.split('/')) == len(path[1:]) + 1 if ".tif" in b]
+        print(blobs)
+
+        rasters = [
+            {
+                'ds': rxr.open_rasterio(
+                    f'gs://{bucket}/{b}'
+                ).isel(band=0), 
+                'id': b.split('/')[-1].split('.')[0]
+            } for b in blobs
+        ]
+        data = [
+            create_dimensions(d['ds'], d['id'])
+            for d in rasters
+        ]
+        data = xr.merge(data).chunk(500).assign_attrs(crs=str(rasters[0]['ds'].rio.crs))
+        data.to_zarr(f'gs://{bucket}/{prefix}/{request.form["output"]}')
+        return ("complete", 200)
+    
+    else:
+        path = request.form['local_directory']
+        logging.info(path)
+        blobs = os.listdir(path)
+        logging.info(blobs)
+
+        rasters = [
+            {
+                'ds': rxr.open_rasterio(
+                    os.path.join(path, b)
+                ).isel(band=0), 
+                'id': b.split('/')[-1].split('.')[0]
+            } for b in blobs
+        ]
+        data = [
+            create_dimensions(d['ds'], d['id'])
+            for d in rasters
+        ]
+        data = xr.merge(data).chunk(500).assign_attrs(crs=str(rasters[0]['ds'].rio.crs))
+        data.to_zarr(os.path.join(path, request.form["output"]))
+        return ("complete", 200)
 
 
 

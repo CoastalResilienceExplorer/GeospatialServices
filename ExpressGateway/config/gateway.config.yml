@@ -9,10 +9,12 @@ apiEndpoints:
     paths:
     - '/build_COG/'
     - '/build_zarr/'
+    - '/'
   damage:
     host: '*'
     paths:
     - '/damage/dlr_guf/'
+    - '/damage/dlr_guf/aev/'
   cog2pt:
     host: '*'
     paths:

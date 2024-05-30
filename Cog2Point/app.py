@@ -101,13 +101,14 @@ def zarr2pt():
     except rxr.exceptions.MissingCRS:
         raster.rio.write_crs(data['crs'], inplace=True)
     print(raster)
-    output = os.path.join(os.environ["MNT_BASE"], data["output"])
+    output = data["output"]
     # output = data['output']
     for p in range(1, len(output.split('/'))):
         p = '/' + '/'.join(output.split('/')[1:p+1])
         print(p)
         if not os.path.exists(p):
             os.makedirs(p)
+            
     xmin, xmax = np.min(raster.x).values, np.max(raster.x).values
     ymin, ymax = np.min(raster.y).values, np.max(raster.y).values
     print(xmin, xmax, ymin, ymax)

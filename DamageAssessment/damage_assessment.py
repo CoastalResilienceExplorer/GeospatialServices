@@ -11,8 +11,8 @@ import math
 
 
 BUILDING_AREA = 'gs://supporting-data2/WSF3d_v02_BuildingArea.tif'
-DDF = './data/damage/DDF_Americas.csv'
-MAXDAMAGE = './data/damage/MaxDamage_per_m2.csv'
+DDF = './damage_data/damage/DDF_Americas.csv'
+MAXDAMAGE = './damage_data/damage/MaxDamage_per_m2.csv'
 COUNTRY = "Belize"
 
 
