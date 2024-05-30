@@ -2,7 +2,7 @@
 
 ```
 export HOST=http://molokai.pbsci.ucsc.edu:3000
-python3 test/test.py \
+python3 tools/trigger.py \
     --data ../../TestData/Dom01.zip \
     --key Dom01 \
     --project NBS_ADAPTS \
