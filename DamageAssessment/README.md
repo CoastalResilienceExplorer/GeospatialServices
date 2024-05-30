@@ -35,6 +35,19 @@ So, `--window_size 500 --population_min 10` means "return only damages where at 
 
 The current iteration is hardcoded to the Americas for DDFs, and Belize for the Max Value, but it would be easy to extend this.
 
+#### Damages AEV
+Damages AEV works a little differently than the other endpoints, because it requires damages to have been calculated, and for a Zarr to have been built.  Once damages have been calculated and stored on GCS, a Zarr can be built using CogMaker, and the Damages AEV endpoint can point to that Zarr.
+
+```
+python3 tools/trigger.py \
+    -t damages_aev \
+    --id AEV_Future2050_S1_AEV_t33 \
+    --damages_zarr data/damages_test.zarr \
+    --formatter WaterDepth_Future2050_S1_Tr{rp}_t33
+```
+
+This will append a new variable to the zarr, with the name `id`.
+
 #### Population
 ```
 python3 tools/trigger.py -f ./data/belize_test_flooding.tiff -t population -p belize -i belize_test.tiff --output ./test_population.tiff
@@ -79,6 +92,25 @@ docker run -it \
     $IMAGE
 ```
 
+### Building Locally
+```
+ENV=staging
+IMAGE=us-west1-docker.pkg.dev/global-mangroves/damages/damages-${ENV}
+docker build \
+    -t $IMAGE \
+    --platform linux/amd64 \
+    .
+
+docker run -it \
+    -v $PWD:/app \
+    -v $HOME/.config/gcloud/:/root/.config/gcloud \
+    -p 3001:8080 \
+    -e OUTPUT_BUCKET_RASTER=cloud-native-geospatial \
+    -e OUTPUT_BUCKET_VECTOR=cloud-native-geospatial \
+    -e MNT_BASE="gs://" \
+    $IMAGE
+```
+
 After doing this, you can test with the same trigger script by attaching `--local` to the call.
 
 ### Testing
@@ -92,6 +124,6 @@ docker run -it \
     -e OUTPUT_BUCKET_VECTOR=cloud-native-geospatial \
     -e MNT_BASE="gs://" \
     -e TEST_WRITE=1 \
-    --entrypoint pytest \
+    --entrypoint bash \
     $IMAGE
 ```

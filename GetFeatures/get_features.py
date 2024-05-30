@@ -65,6 +65,7 @@ def get_open_buildings(left, bottom, right, top, ISO3):
     return buildings
 
 
+@memoize_with_persistence("/tmp/cache.pkl")
 def get_osm(left, bottom, top, right, way_type):
     data = _get_osm(left, bottom, top, right, way_type)
     gdf = geojson_to_geodataframe(data)

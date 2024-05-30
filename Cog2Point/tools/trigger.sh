@@ -1,5 +1,5 @@
 
-INDIR=gs://cogmaker-output-staging/NBS_ADAPTS/Dom02
+INDIR=gs://cogmaker-output-staging/NBS_ADAPTS/JAM/damages/
 HOST=https://cog2pt-staging-myzvqet7ua-uw.a.run.app/cog2pt/
 # HOST=http://localhost:3000/cog2pt/
 

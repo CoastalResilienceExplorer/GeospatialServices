@@ -11,71 +11,17 @@ import threading
 import rioxarray as rxr
 import xarray as xr
 from utils.datastore import add_entity, get_managed_assets
+from utils.gcs import download_blob, upload_blob, list_blobs
 import json
+import zarr
+
+from rioxarray.merge import merge_arrays, merge_datasets
 
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
 app = Flask(__name__)
-
-def download_blob(bucket_name, source_blob_name, destination_file_name):
-    """Downloads a blob from the bucket."""
-    # The ID of your GCS bucket
-    # bucket_name = "your-bucket-name"
-
-    # The ID of your GCS object
-    # source_blob_name = "storage-object-name"
-
-    # The path to which the file should be downloaded
-    # destination_file_name = "local/path/to/file"
-
-    storage_client = storage.Client(project='global-mangroves')
-
-    bucket = storage_client.bucket(bucket_name)
-
-    # Construct a client side representation of a blob.
-    # Note `Bucket.blob` differs from `Bucket.get_blob` as it doesn't retrieve
-    # any content from Google Cloud Storage. As we don't need additional data,
-    # using `Bucket.blob` is preferred here.
-    blob = bucket.blob(source_blob_name)
-    blob.download_to_filename(destination_file_name)
-
-    logging.info(
-        "Downloaded storage object {} from bucket {} to local file {}.".format(
-            source_blob_name, bucket_name, destination_file_name
-        )
-    )
-
-def upload_blob(bucket_name, source_file_name, destination_blob_name):
-    """Uploads a file to the bucket."""
-    # The ID of your GCS bucket
-    # bucket_name = "your-bucket-name"
-    # The path to your file to upload
-    # source_file_name = "local/path/to/file"
-    # The ID of your GCS object
-    # destination_blob_name = "storage-object-name"
-
-    storage_client = storage.Client(project='global-mangroves')
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(destination_blob_name)
-
-    # Optional: set a generation-match precondition to avoid potential race conditions
-    # and data corruptions. The request to upload is aborted if the object's
-    # generation number does not match your precondition. For a destination
-    # object that does not yet exist, set the if_generation_match precondition to 0.
-    # If the destination object already exists in your bucket, set instead a
-    # generation-match precondition using its generation number.
-    # generation_match_precondition = 0
-
-    blob.upload_from_filename(
-        source_file_name, 
-        # if_generation_match=generation_match_precondition
-    )
-
-    logging.info(
-        f"File {source_file_name} uploaded to {destination_blob_name}."
-    )
 
 
 def to_cog(inpath, outpath):
@@ -138,6 +84,71 @@ def build_cog():
         f"Completed",
         200,
     )
+
+
+def jsonKeys2int(x):
+    if isinstance(x, dict):
+        return {int(k):v for k,v in x.items()}
+    return x
+
+
+def create_dimensions(ds, id):
+    return ds.rename(id)
+
+
+@app.route("/build_zarr/", methods=["POST"])
+def build_zarr():
+    id = str(uuid.uuid1())
+    tmp = f'/tmp/{id}.tif'
+    tmp_cog = f'/tmp/{id}_cog.tif'
+
+    is_gcs = "gcs_directory" in request.form
+    if is_gcs:
+        path = request.form['gcs_directory'].replace('gs://', '').split('/')
+        bucket = path[0]
+        prefix = '/'.join(path[1:])
+        blobs = list_blobs(bucket, prefix)
+        blobs = [b for b in blobs if len(b.split('/')) == len(path[1:]) + 1 if ".tif" in b]
+        print(blobs)
+
+        rasters = [
+            {
+                'ds': rxr.open_rasterio(
+                    f'gs://{bucket}/{b}'
+                ).isel(band=0), 
+                'id': b.split('/')[-1].split('.')[0]
+            } for b in blobs
+        ]
+        data = [
+            create_dimensions(d['ds'], d['id'])
+            for d in rasters
+        ]
+        data = xr.merge(data).chunk(500).assign_attrs(crs=str(rasters[0]['ds'].rio.crs))
+        data.to_zarr(f'gs://{bucket}/{prefix}/{request.form["output"]}')
+        return ("complete", 200)
+    
+    else:
+        path = request.form['local_directory']
+        logging.info(path)
+        blobs = os.listdir(path)
+        logging.info(blobs)
+
+        rasters = [
+            {
+                'ds': rxr.open_rasterio(
+                    os.path.join(path, b)
+                ).isel(band=0), 
+                'id': b.split('/')[-1].split('.')[0]
+            } for b in blobs
+        ]
+        data = [
+            create_dimensions(d['ds'], d['id'])
+            for d in rasters
+        ]
+        data = xr.merge(data).chunk(500).assign_attrs(crs=str(rasters[0]['ds'].rio.crs))
+        data.to_zarr(os.path.join(path, request.form["output"]))
+        return ("complete", 200)
+
 
 
 @app.route("/get_managed_assets/", methods=["GET"])

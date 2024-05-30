@@ -7,11 +7,11 @@ SERVICE=getfeatures-${ENV}
 
 echo """
 steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--build-arg', 'BASE_IMAGE=$BASE_IMAGE', '-t', '$IMAGE', '.']
-  dir: '.'
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', '$IMAGE']
+# - name: 'gcr.io/cloud-builders/docker'
+#   args: ['build', '--build-arg', 'BASE_IMAGE=$BASE_IMAGE', '-t', '$IMAGE', '.']
+#   dir: '.'
+# - name: 'gcr.io/cloud-builders/docker'
+#   args: ['push', '$IMAGE']
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['run', 'deploy', 
     '$SERVICE', 
@@ -21,10 +21,10 @@ steps:
     '--region', 'us-west1', 
     '--service-account', 'fs-identity',
     '--update-env-vars', 'MNT_BUCKETS=cloud-native-geospatial;supporting-data2;cogmaker-output-${ENV}',
-    '--cpu', '2',
-    '--memory', '8G',
+    '--cpu', '8',
+    '--memory', '32G',
     '--timeout', '3600',
-    '--concurrency', '1'
+    '--concurrency', '2'
     ]
 """ > /tmp/cloudbuild.yaml
 

@@ -20,6 +20,6 @@ Note that you'll also need to include ENV Variable for: `GS_SECRET_ACCESS_KEY` a
 
 ```
 docker build -t gp2mb .
-docker run -it -v $PWD:/app -v $HOME/.config/gcloud:/root/.config/gcloud --entrypoint bash -p 3000:8080 gp2mb
+docker run -it -v $PWD:/app -v $HOME/.config/gcloud:/root/.config/gcloud --entrypoint bash -p 3001:8080 gp2mb
 ```
 

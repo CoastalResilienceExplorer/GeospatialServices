@@ -17,7 +17,6 @@ docker run \
     -e MNT_BUCKETS="cogmaker-output-staging;geopmaker-output-staging" \
     -it \
     -p 3000:8080 \
-    -p 3001:8786 \
     $IMAGE
 ```
 

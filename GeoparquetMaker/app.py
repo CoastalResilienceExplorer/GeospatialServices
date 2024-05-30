@@ -42,6 +42,23 @@ def api_build_geoparquet():
     return "200"
 
 
+@app.route('/join_geoparquets/', methods=["POST"])
+def api_join_geoparquets():
+    datasets = request.form['datasets'].split(';')
+    print(datasets)
+    gdf = gpd.read_parquet(datasets[0])
+    base_cols = gdf.columns
+
+    for ds in datasets[1:]:
+        gdf_to_add = gpd.read_parquet(ds)
+        join_cols = [c for c in gdf_to_add.columns if c in base_cols]
+        gdf = gdf.merge(gdf_to_add, how="outer", on=join_cols)
+        del gdf_to_add
+
+    write_partitioned_gdf(gdf, request.form['output'])
+    return "200"
+
+
 @app.get("/")
 def test():
     return "OK"

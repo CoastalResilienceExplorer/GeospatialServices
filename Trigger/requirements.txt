@@ -1,0 +1,10 @@
+requests
+requests_toolbelt
+flask
+uvicorn[standard]
+gunicorn
+aiohttp
+asyncio
+flask[async]
+
+numpy
