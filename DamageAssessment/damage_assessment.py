@@ -11,7 +11,7 @@ import math
 
 
 BUILDING_AREA = 'gs://supporting-data2/WSF3d_v02_BuildingArea.tif'
-DDF = './damage_data/damage/DDF_Americas.csv'
+DDF = './damage_data/damage/DDF_Global.csv'
 MAXDAMAGE = './damage_data/damage/MaxDamage_per_m2.csv'
 COUNTRY = "Belize"
 
@@ -70,7 +70,7 @@ def main(flooding: xr.Dataset | xr.DataArray, window=0, population_min=5):
         return (damage_totals * buildings)
 
 
-def AEV(ds, rps, keys, id):
+def AEV(ds, rps, keys, id, year_of_zero_damage=2.):
     values = np.nan_to_num(
         np.array([
             ds[k].to_numpy() for k in keys
@@ -83,9 +83,10 @@ def AEV(ds, rps, keys, id):
     probability = 1.0 / rps
         
     #add rp = 1
-    if not any(probability==1): 
+    probability_of_zero_damage = 1/year_of_zero_damage
+    if not any(probability==probability_of_zero_damage): 
         x = probability.tolist()
-        x.append(1)
+        x.append(probability_of_zero_damage)
         y = values.tolist()
         y.append(np.zeros(ds[keys[0]].shape)) # loss 0 for annual flood 
         
