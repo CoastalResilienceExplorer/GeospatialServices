@@ -12,4 +12,9 @@ To serve raster tiles from GCS
 
 # Local Development
 1. Build an image with `bash build_and_submit.sh dev`
-2. `docker run -it -v $PWD:/app --entrypoint uvicorn -p 3004:8080 us-west1-docker.pkg.dev/global-mangroves/cogserver/cogserver_dev app:app --reload --host 0.0.0.0 --port 8080`
+or 
+```
+ENV=staging
+docker build --build-arg BUCKET=gs://cogmaker-output-${ENV} --build-arg BASE_IMAGE=us-west1-docker.pkg.dev/global-mangroves/base/python_gis_base_${ENV} -t us-west1-docker.pkg.dev/global-mangroves/cogserver/cogserver_${ENV} .
+docker run -it -v $PWD:/app --entrypoint uvicorn -p 3004:8080 us-west1-docker.pkg.dev/global-mangroves/cogserver/cogserver_${ENV} app:app --reload --host 0.0.0.0 --port 8080
+```

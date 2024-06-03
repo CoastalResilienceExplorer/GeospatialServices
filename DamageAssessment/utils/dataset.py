@@ -104,8 +104,9 @@ def get_timestep_as_geo(rds, full_output_path, t_index):
 
 
 def makeSafe_rio(ds):
-    tmp_cog1 = '/tmp/tmp_raster.tiff'
-    tmp_cog2 = '/tmp/raster.tiff'
+    id = str(uuid.uuid4())
+    tmp_cog1 = f'/tmp/{id}-1.tiff'
+    tmp_cog2 = f'/tmp/{id}-2.tiff'
     for p in (tmp_cog1, tmp_cog2):
         if os.path.exists(p):
             os.remove(p)

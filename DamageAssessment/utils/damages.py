@@ -7,7 +7,7 @@ import xarray as xr
 
 def apply_ddf(
     ds,
-    ddfs="./data/damage/DDF_Americas.csv"
+    ddfs="./damage_data/damage/DDF_Global.csv"
 ):
     ds = copy.deepcopy(ds)
     ddfs = pd.read_csv(ddfs)

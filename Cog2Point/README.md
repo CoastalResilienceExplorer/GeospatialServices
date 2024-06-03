@@ -2,7 +2,7 @@
 
 ## To Run Locally
 ```
-ENV=dev
+ENV=staging
 IMAGE=cog2pts-${ENV}
 BASE_GAR_DIRECTORY=us-west1-docker.pkg.dev/global-mangroves
 BASE_IMAGE=${BASE_GAR_DIRECTORY}/base/python_gis_base_${ENV}
@@ -14,10 +14,9 @@ docker run \
     --cap-add SYS_ADMIN --device /dev/fuse \
     -v $HOME/.config/gcloud:/root/.config/gcloud \
     -v $PWD:/app \
-    -e MNT_BUCKETS="cloud-native-geospatial;supporting-data2" \
+    -e MNT_BUCKETS="cogmaker-output-staging;geopmaker-output-staging" \
     -it \
     -p 3000:8080 \
-    -p 3001:8786 \
     $IMAGE
 ```
 

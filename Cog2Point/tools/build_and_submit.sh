@@ -22,9 +22,10 @@ steps:
     '--region', 'us-west1', 
     '--service-account', 'fs-identity',
     '--update-env-vars', 'MNT_BUCKETS=cloud-native-geospatial;geopmaker-output-${ENV};cogmaker-output-${ENV}',
-    '--cpu', '2',
-    '--memory', '8G',
-    '--timeout', '3600'
+    '--cpu', '4',
+    '--memory', '16G',
+    '--timeout', '3600',
+    '--concurrency', '5'
     ]
 """ > /tmp/cloudbuild.yaml
 

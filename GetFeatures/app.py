@@ -12,6 +12,7 @@ from collections import OrderedDict
 import numpy as np
 from utils.api_requests import data_to_parameters_factory, response_to_gpkg
 from utils.geo import extract_z_values
+from utils.geoparquet_utils import write_partitioned_gdf
 
 TMP_FOLDER = '/tmp'
 
@@ -106,8 +107,14 @@ def api_get_open_buildings(left, bottom, right, top, ISO3):
 @response_to_gpkg
 def api_extract_z_values():
     z = rxr.open_rasterio(
-        io.BytesIO(request.files['z'].read())
-    ).isel(band=0)
+        io.BytesIO(request.files['flooding'].read())
+    ).isel(band=0).rio.reproject("EPSG:4326")
+    attrs = z.attrs
+    z = xr.where(z == z.rio.nodata, 0, z)
+    z.rio.write_nodata(0, inplace=True) 
+    id = request.form['id']
+    if (bool(request.form['rescale'])): 
+        z = z * attrs['scale_factor']
     features_from = request.form.get('features_from', 'OSM')
     assert features_from in ('OSM, OpenBuildings')
     if features_from == "OSM":
@@ -115,11 +122,17 @@ def api_extract_z_values():
         b = z.rio.bounds()
         left, bottom, right, top = b
         gdf = get_osm(left=left, bottom=bottom, right=right, top=top, way_type=way_type)
+        gdf = gdf[['id', 'type', 'geometry']]
         gdf_points = copy.deepcopy(gdf)
         gdf_points['geometry'] = gdf_points['geometry'].centroid
-        gdf_points = extract_z_values(ds=z, gdf=gdf_points, column_name="z")
-        gdf['z'] = gdf_points['z']
-        gdf['z'][gdf['z'] == z.rio.nodata] = np.nan
+        gdf_points = extract_z_values(ds=z, gdf=gdf_points, column_name=id)
+        gdf[id] = gdf_points[id]
+        gdf[id][gdf[id] == z.rio.nodata] = np.nan
+        write_partitioned_gdf(
+            gdf, 
+            f"{request.form['gcs_output']}"
+        )
+
         return gdf
     
     else:

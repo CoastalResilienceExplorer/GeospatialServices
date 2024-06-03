@@ -8,6 +8,7 @@ logging.root.setLevel(logging.INFO)
 def overpass_api_request(query):
     overpass_url = "http://overpass-api.de/api/interpreter"
     response = requests.post(overpass_url, data=query)
+    print(response.content)
     return response.json()
 
 def get_ways(bbox, way_type):
