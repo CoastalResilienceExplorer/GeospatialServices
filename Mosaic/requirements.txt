@@ -1,0 +1,16 @@
+xarray
+pandas
+geopandas
+rioxarray
+rasterio
+h5netcdf
+flask
+pytest
+fastparquet
+pyarrow
+zarr
+uvicorn[standard]
+gunicorn
+dask
+odc-geo
+scipy

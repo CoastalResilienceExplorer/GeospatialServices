@@ -2,223 +2,308 @@ import flask
 from flask import Flask, request
 import zipfile
 import os, io
-import aiohttp
-import asyncio
-import requests
-import concurrent
 import numpy as np
 import shutil
 from glob import glob
+import uuid
+import time
+import json
+import requests
+
 
 import logging
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
+
+from utils.redis import r
+from utils.generators import assert_done, \
+    async_runner, \
+    cog_generator, \
+    exposure_generator, \
+    damages_generator, \
+    population_generator, \
+    zarr_build_generator, \
+    aev_generator, \
+    zarr2pt_generator, \
+    pmtiles_generator
+
 app = Flask(__name__)
 
-def post(url, data, files, write_content=False):
-    with requests.post(url, data=data, files=files) as response:
-        if write_content:
-            with open(write_content, 'wb') as f:
-                f.write(response.content)
-        return response.status_code
-    
-
-def post_json(url, json, write_content=False):
-    with requests.post(url, json=json, headers={"Content-Type": "application/json"}) as response:
-        if write_content:
-            with open(write_content, 'wb') as f:
-                f.write(response.content)
-        return response.status_code
-
-
-def assert_done(x):
-    return np.all([i == 200 for i in x])
-
 CLEAN_SLATE = True
-SKIP_TASKS = [
-    "COG", 
+TASKS = [
+    "SUBMITTED",
+    "COG",
     "DAMAGES",
+    "EXPOSURE",
+    "POPULATION",
     "ZARR_BUILD",
-    "AEV",
+    "AEV_DAMAGES",
+    "AEV_POPULATION",
     "ZARR2PT",
-    # "PMTILES"
+    "PMTILES",
 ]
 
 if CLEAN_SLATE:
-    SKIP_TASKS = ["COG"]
+    TASKS = [
+        "SUBMITTED",
+        "COG",
+        "DAMAGES",
+        "EXPOSURE",
+        "POPULATION",
+        "ZARR_BUILD",
+        "AEV_DAMAGES",
+        "AEV_POPULATION",
+        "ZARR2PT",
+        "PMTILES",
+    ]
+
+DATA_OUTPUTS = [
+    'flooding',
+    'damages',
+    'exposure',
+    'population'
+]
+
+
+def get_paths(project, key):
+    paths_to_create = ["init", "flooding", "damages", "exposure", "population", "downloads"]
+    base = os.path.join(os.getenv("MOUNT_PATH"), project, key)
+    paths = {i: os.path.join(base, i) for i in paths_to_create}
+    paths['BASE'] = base
+    return paths
+
+
+def save_submission(data, submission_id):
+    SUBMISSION_DIR = f"{os.getenv('MOUNT_PATH')}/submissions"
+    if os.path.exists(os.path.join(SUBMISSION_DIR, submission_id)):
+        os.remove(os.path.join(SUBMISSION_DIR, submission_id))
+    with open(os.path.join(SUBMISSION_DIR, submission_id), 'wb') as f:
+        f.write(data)
+
+
+def initialize_paths(paths):
+    for v in paths.values():
+        if not os.path.exists(v):
+            os.makedirs(v)
+
+
+def get_data_output_urls(project, key):
+    return {
+        k: f'{os.getenv("HOST")}/get_data?type={k}&project={project}&key=${key}&format=tif' for k in DATA_OUTPUTS
+    }
 
 
 @app.route('/trigger', methods=["POST"])
 async def trigger():
-    logging.info(request.form)
-
     PROJECT = request.form['project']
     KEY = request.form['key']
+    SUBMISSION_ID = f'{PROJECT}_{KEY}'
+    DATA = request.files['data'].read()
+    paths = get_paths(PROJECT, KEY)
+
+    r.delete(SUBMISSION_ID)
+
+    r.hset(SUBMISSION_ID, mapping={
+        "status": "STARTED",
+        "tasks": ','.join(TASKS),
+        "project": PROJECT,
+        "key": KEY,
+        "template": request.form['template']
+    })
+
+    save_submission(DATA, f'{SUBMISSION_ID}.zip')
 
     if CLEAN_SLATE:
-        if os.path.exists(os.path.join('/app/data', PROJECT, KEY)):
-            shutil.rmtree(os.path.join('/app/data', PROJECT, KEY))
+        if os.path.exists(paths['BASE']):
+            shutil.rmtree(paths['BASE'])
 
-    init_path = os.path.join('/app/data', PROJECT, KEY, 'init')
-    if not os.path.exists(init_path):
-        os.makedirs(init_path)
+    initialize_paths(paths)
 
-    cogpath = os.path.join('/app/data', PROJECT, KEY, 'cog')
-    if not os.path.exists(cogpath):
-        os.makedirs(cogpath)
-    remote_cogpath = os.path.join(PROJECT, KEY, "flooding")
+    with zipfile.ZipFile(io.BytesIO(DATA), 'r') as zip_ref:
+        zip_ref.extractall(paths['init'])
 
-    damagespath = os.path.join('/app/data', PROJECT, KEY, 'damages')
-    if not os.path.exists(damagespath):
-        os.makedirs(damagespath)
-    remote_damagespath = os.path.join(PROJECT, KEY, "damages")
-    
-    with zipfile.ZipFile(io.BytesIO(request.files['data'].read()), 'r') as zip_ref:
-        zip_ref.extractall(init_path)
+    logging.info(paths)
     
     # Build COGs
-    if "COG" not in SKIP_TASKS:
-        loop = asyncio.get_running_loop()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=40) as executor:
-            tasks = []
-            for f in os.listdir(init_path):
-                files = {'data': open(os.path.join(init_path, f), 'rb')}
-                data = {
-                    "name": os.path.join(remote_cogpath, f)
-                }
-                url=f'{os.getenv("HOST")}/build_COG/'
-                tasks.append(loop.run_in_executor(executor, post, url, data, files))
-            responses = await asyncio.gather(*tasks)
-        if not assert_done(responses):
-            return ("Failure", 500)
+    PIPELINE = {
+        "COG": {
+            "runner": async_runner,
+            "args": (cog_generator(paths), SUBMISSION_ID, "COG", assert_done),
+            "kwargs": {"tries": 2, "workers": 32}
+        },
 
+        "DAMAGES": {
+            "runner": async_runner,
+            "args": (damages_generator(paths), SUBMISSION_ID, "DAMAGES", assert_done),
+            "kwargs": {"tries": 2, "workers": 32}
+        },
 
-    # Damages
-    if "DAMAGES" not in SKIP_TASKS: 
-        loop = asyncio.get_running_loop()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            tasks = []
-            for f in os.listdir(init_path):
-                files = {'flooding': open(os.path.join(init_path, f), 'rb')}
-                data = {
-                    "output_to_gcs": os.path.join(remote_damagespath, f)
-                }
-                url=f'{os.getenv("HOST")}/damage/dlr_guf/'
-                tasks.append(loop.run_in_executor(executor, post, url, data, files, os.path.join(damagespath, f)))
-            responses = await asyncio.gather(*tasks)
-        logging.info(responses)
-        if not assert_done(responses):
-            return ("Failure", 500)
+        "EXPOSURE": {
+            "runner": async_runner,
+            "args": (exposure_generator(paths), SUBMISSION_ID, "EXPOSURE", assert_done),
+            "kwargs": {"tries": 2, "workers": 32}
+        },
 
-    # Damages Zarr
-    if "ZARR_BUILD" not in SKIP_TASKS:
-        data = {
-            "local_directory": damagespath,
-            "output": "damages.zarr",
-        }
-        url=f'{os.getenv("HOST")}/build_zarr/'
-        res = requests.post(url, data=data)
-        if res.status_code != 200:
-            return ("Failure", 500)
-        
-        # Flooding Zarr
-        data = {
-            "local_directory": init_path,
-            "output": "flooding.zarr",
-        }
-        url=f'{os.getenv("HOST")}/build_zarr/'
-        res = requests.post(url, data=data)
-        if res.status_code != 200:
-            return ("Failure", 500)
-        
+        "POPULATION": {
+            "runner": async_runner,
+            "args": (population_generator(paths), SUBMISSION_ID, "POPULATION", assert_done),
+            "kwargs": {"tries": 2, "workers": 32}
+        },
 
-    if "AEV" not in SKIP_TASKS:
-        from string import Template
-        import itertools
-        # Damages AEV
-        loop = asyncio.get_running_loop()
-        template = Template(request.form['template'])
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            tasks = []
-            scenario_parse = [i.split('/')[-1].split('_') for i in glob(os.path.join(damagespath, '*.tif*'))]
-            scenarios = dict()
-            for idx, k in enumerate(request.form['template'].split('_')):
-                if "$" in k:
-                    scenarios[k.replace("$", "").replace('{', '').replace('}', '')] = list(set([i[idx] for i in scenario_parse]))
-            # Extract keys and values
-            keys = scenarios.keys()
-            values = scenarios.values()
+        "ZARR_BUILD": {
+            "runner": async_runner,
+            "args": (zarr_build_generator(DATA_OUTPUTS, paths), SUBMISSION_ID, "ZARR_BUILD", assert_done),
+            "kwargs": {"tries": 4, "workers": 4}
+        },
 
-            # Compute the Cartesian product of the values
-            cross_product = itertools.product(*values)
+        "AEV_DAMAGES": {
+            "runner": async_runner,
+            "args": (aev_generator(request.form['template'], 'AEV-Econ', request.form['rps'], paths, 'damages'), SUBMISSION_ID, "AEV_DAMAGES", assert_done),
+            "kwargs": {"tries": 6, "workers": 4}
+        },
 
-            # Construct the list of dictionaries
-            scenarios = [dict(zip(keys, items)) for items in cross_product]
-            for values in scenarios:
-                formatter = template.safe_substitute(values)
-                logging.info(formatter)
-                damages_zarr = os.path.join(damagespath, "damages.zarr")
-                id = '_'.join(values.values()) + '_AEV_damages'
-                data = {
-                    "formatter": formatter,
-                    "damages_zarr": damages_zarr,
-                    "id": id,
-                    "rps": request.form['rps']
-                }
-                url=f'{os.getenv("HOST")}/damage/dlr_guf/aev/'
-                tasks.append(loop.run_in_executor(executor, post, url, data, None))
-            responses = await asyncio.gather(*tasks)
-        logging.info(responses)
-        if not assert_done(responses):
-            return ("Failure", 500)
-        
+        "AEV_POPULATION": {
+            "runner": async_runner,
+            "args": (aev_generator(request.form['template'], 'AEV-Pop', request.form['rps'], paths, 'population'), SUBMISSION_ID, "AEV_POPULATION", assert_done),
+            "kwargs": {"tries": 6, "workers": 4}
+        },
 
-    if "ZARR2PT" not in SKIP_TASKS:
-        loop = asyncio.get_running_loop()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            tasks = []
-            to_run = {
-                'flooding': init_path,
-                'damages': damagespath
-            }
-            for d in to_run.keys():
-                url=f'{os.getenv("HOST")}/zarr2pt/'
-                data = {
-                    "data": os.path.join(to_run[d], f"{d}.zarr"),
-                    "output": os.path.join(to_run[d], f"{d}.parquet")
-                }
-                tasks.append(loop.run_in_executor(executor, post_json, url, data))
-            responses = await asyncio.gather(*tasks)
-            if not assert_done(responses):
-                return ("Failure", 500)
-        
-        
-    if "PMTILES" not in SKIP_TASKS:
-        # Flooding Zarr
-        url=f'{os.getenv("HOST")}/create_pmtiles/'
-        loop = asyncio.get_running_loop()
-        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
-            to_run = {
-                    'flooding': init_path,
-                    'damages': damagespath
-            }
-            tasks = []
-            for d in to_run.keys():
-                data = {
-                    "bucket": "geopmaker-output-staging",
-                    "input": os.path.join(to_run[d], f"{d}.parquet"),
-                    "output": os.path.join(PROJECT, KEY, f"{d}.pmtiles"),
-                    "use_id": "fid"
-                }
-                tasks.append(loop.run_in_executor(executor, post_json, url, data))
-            responses = await asyncio.gather(*tasks)
-            if not assert_done(responses):
-                return ("Failure", 500)
-    
+        "ZARR2PT": {
+            "runner": async_runner,
+            "args": (zarr2pt_generator(paths, DATA_OUTPUTS), SUBMISSION_ID, "ZARR2PT", assert_done),
+            "kwargs": {"tries": 3, "workers": 4}
+        },
+
+        "PMTILES": {
+            "runner": async_runner,
+            "args": (pmtiles_generator(paths, DATA_OUTPUTS, os.path.join(PROJECT, KEY)), SUBMISSION_ID, "PMTILES", assert_done),
+            "kwargs": {"tries": 2, "workers": 4}
+        },
+    }
+
+    PIPELINE = {
+        k: v for k, v in PIPELINE.items() if k in TASKS
+    }
+
+    for task, spec in PIPELINE.items():
+        runner = spec['runner']
+        if runner == async_runner:
+            await runner(
+                *spec['args'],
+                **spec['kwargs']
+            )
+
+    r.hset(SUBMISSION_ID, mapping={
+        "downloads": json.dumps(get_data_output_urls(PROJECT, KEY))
+    })
+
     return ("Complete", 200)
     
 
+@app.get('/backfill')
+def backfill():
+    import requests, os, argparse
+    from requests_toolbelt import MultipartEncoder
+
+    template = 'WaterDepth_${clim}_${scen}_Tr{rp}_t33'
+    projects = [i for i in os.listdir(os.getenv("MOUNT_PATH")) if i != 'submissions']
+
+    for p in projects:
+        keys = ["DOM_01"]
+        # keys = os.listdir(os.path.join(os.getenv("MOUNT_PATH"), p))
+        for k in keys:
+            files = {'data': open(os.path.join(os.getenv("MOUNT_PATH"), 'submissions', f'{p}_{k}.zip'), 'rb')}
+            response = requests.post(
+                f'{os.getenv("HOST")}/trigger', data={
+                    'key': k,
+                    'project': p,
+                    'template': template,
+                    'rps': "10,25,50,100",
+                }, files=files
+            )
+            if response.status_code == 500:
+                # return ("failed", 500)
+                continue
+    
+    return ("complete", 200)
+
+
+@app.route('/status', methods=["GET"])
+def get_status():
+    keys = r.keys()
+    logging.info(keys)
+    return {k: r.hgetall(k) for k in keys}
+
+
+@app.route('/get_tasks', methods=['GET'])
+def get_tasks():
+    return TASKS
+
+
+@app.route('/get_downloads', methods=['GET'])
+def get_downloads():
+    PROJECT = request.args.get('project')
+    KEY = request.args.get('key')
+    return get_data_output_urls(PROJECT, KEY)
+
+
+@app.route('/get_data', methods=["GET"])
+async def get_data():
+
+    data_type = request.args.get('type')
+    PROJECT = request.args.get('project')
+    KEY = request.args.get('key')
+    FORMAT = request.args.get('format')
+    
+    paths = get_paths(PROJECT, KEY)
+    download_dir = paths['downloads']
+    input_path = paths[data_type]
+    input_zarr = f'{data_type}.zarr'
+    zarr = os.path.join(input_path, input_zarr)
+
+    def is_file_being_written(filepath, interval=1):
+        initial_size = os.path.getsize(filepath)
+        time.sleep(interval)
+        new_size = os.path.getsize(filepath)
+        return initial_size != new_size
+
+    def compute_and_cache(f, p, args):
+        if os.path.exists(p):
+            while is_file_being_written(p):
+                continue 
+                
+        else:
+            f(*args)
+    
+    if FORMAT == "nc":
+        url = f'{os.getenv("HOST")}/zarr_to_netcdf/'
+        output = os.path.join(download_dir, f'{data_type}.nc')
+
+        def f( url, zarr, output): 
+            requests.post(url, data={"zarr": zarr, "output": nc})
+            return flask.send_from_directory(download_dir, f'{data_type}.nc')
+        
+        return return_with_cache(f, p, [url, zarr, output])
+
+    elif FORMAT == "tif":
+        url = f'{os.getenv("HOST")}/zarr_to_tiff/'
+        archive_dir = os.path.join(download_dir, "tifs", data_type)
+        if not os.path.exists(archive_dir):
+            os.makedirs(archive_dir)
+        
+        tiff_zip = os.path.join(download_dir, f"{data_type}.zip")
+
+        def f(url, zarr, archive_dir):
+            requests.post(url, data={"zarr": zarr, "output": archive_dir})
+            shutil.make_archive(os.path.join(download_dir, data_type), 'zip', archive_dir, archive_dir)
+
+        compute_and_cache(f, tiff_zip, [url, zarr, archive_dir])
+        return flask.send_from_directory(download_dir, f"{data_type}.zip")
+        
+    else:
+        shutil.make_archive(os.path.join(download_dir, data_type), 'zip', zarr, zarr)
+        return flask.send_from_directory(download_dir, f'{data_type}.zip')
 
 @app.get("/")
 def test():

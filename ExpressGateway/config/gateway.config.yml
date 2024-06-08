@@ -1,5 +1,12 @@
 http:
   port: 8080
+# https:
+#   port: 8080
+#   hostname: localhost
+#   tls:
+#     "molokai.pbsci.ucsc.edu":
+#         key: /app/ssl/molokai.pbsci.ucsc.edu.key
+#         cert: /app/ssl/molokai.pbsci.ucsc.edu_cer.cer
 admin:
   port: 9876
   host: localhost
@@ -9,12 +16,16 @@ apiEndpoints:
     paths:
     - '/build_COG/'
     - '/build_zarr/'
+    - '/zarr_to_netcdf/'
+    - '/zarr_to_tiff/'
     - '/'
   damage:
     host: '*'
     paths:
     - '/damage/dlr_guf/'
-    - '/damage/dlr_guf/aev/'
+    - '/damage/dlr_guf/exposure'
+    - '/population/GHSL_2020_100m'
+    - '/aev/'
   cog2pt:
     host: '*'
     paths:
@@ -24,7 +35,18 @@ apiEndpoints:
     paths:
     - '/create_pmtiles/'
     - '/get_tilesets/'
+  trigger:
+    host: '*'
+    paths:
+    - '/trigger/'
+    - '/get_data/'
+    - '/get_downloads/'
+    - '/get_tasks/'
+    - '/status/'
+    - '/backfill/'
 serviceEndpoints:
+  trigger:
+    url: 'http://molokai.pbsci.ucsc.edu:3005'
   geoparquet2pmtiles:
     url: 'http://molokai.pbsci.ucsc.edu:3004'
   cogmaker:
@@ -83,3 +105,14 @@ pipelines:
           - action:
               serviceEndpoint: geoparquet2pmtiles
               changeOrigin: true
+  trigger:
+    apiEndpoints:
+      - trigger
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: trigger
+              changeOrigin: true
+

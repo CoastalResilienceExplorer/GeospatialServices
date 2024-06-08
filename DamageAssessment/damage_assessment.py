@@ -13,7 +13,7 @@ import math
 BUILDING_AREA = 'gs://supporting-data2/WSF3d_v02_BuildingArea.tif'
 DDF = './damage_data/damage/DDF_Global.csv'
 MAXDAMAGE = './damage_data/damage/MaxDamage_per_m2.csv'
-COUNTRY = "Belize"
+COUNTRY = "OneDollar"
 
 
 def main(flooding: xr.Dataset | xr.DataArray, window=0, population_min=5):
@@ -68,6 +68,43 @@ def main(flooding: xr.Dataset | xr.DataArray, window=0, population_min=5):
             damage_totals = damage_totals * population
 
         return (damage_totals * buildings)
+
+
+def exposure(flooding: xr.Dataset | xr.DataArray):
+    init_crs = flooding.rio.crs
+    buildings = rxr.open_rasterio(
+        BUILDING_AREA
+    ).isel(band=0)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            category=NotGeoreferencedWarning,
+            module="rasterio",
+        )
+        flooding_reproj = flooding.rio.reproject("EPSG:4326")
+        minx, miny, maxx, maxy = flooding_reproj.rio.bounds()
+        buildings = buildings.rio.clip_box(
+            minx=minx, miny=miny, maxx=maxx, maxy=maxy, auto_expand=True
+        ).rio.reproject(init_crs)
+
+        flooding = xr.where(flooding == flooding.rio.nodata, 0, flooding).rio.write_crs(init_crs)
+        buildings = xr.where(buildings == buildings.rio.nodata, 0, buildings).rio.write_crs(init_crs)
+
+        flooding_res = get_resolution(flooding)
+        buildings_res = get_resolution(buildings)
+
+        res_modifier = (
+            (flooding_res[0] * flooding_res[1]) /
+            (buildings_res[0] * buildings_res[1])
+        )
+        
+        buildings = buildings.reindex_like(flooding, method="nearest")
+        buildings = buildings * res_modifier
+
+        floodmask = xr.where(flooding > 0, 1, 0).rio.write_crs(init_crs)
+        exposure = buildings * flooding
+
+        return exposure
 
 
 def AEV(ds, rps, keys, id, year_of_zero_damage=2.):
