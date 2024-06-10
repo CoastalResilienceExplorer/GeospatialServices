@@ -11,17 +11,18 @@ from shapely.geometry import Point
 from shapely.ops import transform, unary_union
 import shapely
 
-
+from tqdm import tqdm
 import xarray as xr
 import numpy as np
 from shapely.geometry import Polygon, Point, MultiLineString, LineString, MultiPolygon
 from scipy.spatial import cKDTree
+import copy
 
 from utils.dataset import compressRaster
 
 import logging
 
-def calculate_distances_to_multipolygon(xr_obj, boundary, op=np.max):
+def calculate_distances_to_edges(xr_obj, line_feature, boundary, op=np.max):
     """
     Calculate the distance from each pixel in an xarray object to the nearest polygon in a MultiPolygon,
     setting pixel values outside the polygons to NaN.
@@ -46,27 +47,17 @@ def calculate_distances_to_multipolygon(xr_obj, boundary, op=np.max):
     ds_dict = ds_stacked.to_dict()
     coords = ds_dict['coords']['pt']['data']
 
-    def get_dist(polygon, pt):
-        if isinstance(polygon, shapely.geometry.LineString):
-            return polygon.distance(pt)
-
+    def get_dist(line_feature, pt):
+        if not boundary.contains(pt):
+            return 0
         else:
-            if not polygon.contains(pt):
-                return 0
-            else:
-                return polygon.exterior.distance(pt)
+            return line_feature.distance(pt)
 
-
-    if isinstance(boundary, shapely.geometry.MultiPolygon) or isinstance(boundary, shapely.geometry.MultiLineString):
-        distances_buff = []
-        for polygon in boundary.geoms:
-            logging.info('xxx')
-            distances = [
-                get_dist(polygon, Point(*c)) 
-                for c in coords
-            ]
-            distances_buff.append(distances)
-        distances = op(distances_buff, axis=0)
+    distances = []
+    for c in tqdm(coords):
+        distances.append(
+            get_dist(line_feature, Point(*c)) 
+        )
 
     data = np.reshape(distances, [ds_clipped.shape[1], ds_clipped.shape[0]])
     data_array = xr.DataArray(
@@ -78,35 +69,6 @@ def calculate_distances_to_multipolygon(xr_obj, boundary, op=np.max):
 
     data_array.rio.write_crs(xr_obj.rio.crs, inplace=True)
     return data_array
-    x = xr_obj.coords['x'].values
-    y = xr_obj.coords['y'].values
-    x_grid, y_grid = np.meshgrid(x, y)
-    
-    # Flatten the grids to create a list of points
-    points = np.vstack((x_grid.ravel(), y_grid.ravel())).T
-    
-    # Create a list of all polygon boundary points in the MultiPolygon
-    polygon_points = np.vstack([np.array(polygon.exterior.coords) for polygon in multipolygon.geoms])
-    
-    # Create a KDTree for the polygon boundary points
-    tree = cKDTree(polygon_points)
-    
-    # Calculate distances to the nearest polygon point
-    distances, _ = tree.query(points)
-    
-    # Check which points are inside any of the polygons
-    points_inside = np.array([multipolygon.contains(Point(p)) for p in points])
-    
-    # Set distances to NaN for points outside the polygons
-    distances[~points_inside] = np.nan
-    
-    # Reshape the distances to match the original grid shape
-    distances = distances.reshape(x_grid.shape)
-    
-    # Create a new xarray DataArray with the distances
-    distance_da = xr.DataArray(distances, coords=xr_obj.coords, dims=xr_obj.dims)
-    
-    return distance_da
 
 
 
@@ -193,50 +155,15 @@ def xr_vectorize(
     return gdf[gdf["attribute"] == 1.0]
 
 
-def mosaic_xarray(arr1, arr2):
+def create_encompassing_grid(arr1, arr2, buff=200):
 
-    # Calculate Polygons
-    p1 = xr_vectorize(arr1>0, coarsen_by=1)
-    p2 = xr_vectorize(arr2>0, coarsen_by=1)
-    p1 = unary_union(p1.geometry)
-    p2 = unary_union(p2.geometry)
-
-    def to_line(p):
-        if isinstance(p, shapely.geometry.MultiPolygon):
-            return MultiLineString([LineString(polygon.exterior.coords) for polygon in p.geoms])
-        return MultiLineString(p.exterior.coords)
-
-
-    intersection_polygon=p1.intersection(p2)
-    l1 = to_line(p1).intersection(intersection_polygon)
-    l2 = to_line(p2).intersection(intersection_polygon)
-
-    logging.info(len(intersection_polygon.geoms))
-    logging.info(len(l1.geoms))
-    # p2.to_file('p2.gpkg')
-    d1 = calculate_distances_to_multipolygon(arr1, intersection_polygon)
-    dl1 = calculate_distances_to_multipolygon(arr1, l1, op=np.min)
-    dl2 = calculate_distances_to_multipolygon(arr1, l2, op=np.min)
-
-    compressRaster(d1, "test_poly.tif")
-    compressRaster(dl1, "test_line1.tif")
-    compressRaster(dl2, "test_line2.tif")
-    # logging.info(d1)
-    # del d1.attrs['grid_mapping']
-    # d1.rio.write_crs(arr1.rio.crs, inplace=True)
-    # compressRaster(d1, 'test.tif')
-    return
-    d2 = calculate_distances_to_multipolygon(arr2, p2)
-    d1.rio.to_raster('d1.tif')
-    d2.rio.to_raster('d2.tif')
-
-    return
-
+    def is_ascending(arr):
+        return np.all(arr[:-1] <= arr[1:])
     # Determine the bounds of the new mosaic
-    y_min = min(arr1.y.min().item(), arr2.y.min().item())
-    y_max = max(arr1.y.max().item(), arr2.y.max().item())
-    x_min = min(arr1.x.min().item(), arr2.x.min().item())
-    x_max = max(arr1.x.max().item(), arr2.x.max().item())
+    y_min = min(arr1.y.min().item(), arr2.y.min().item())-buff
+    y_max = max(arr1.y.max().item(), arr2.y.max().item())+buff
+    x_min = min(arr1.x.min().item(), arr2.x.min().item())-buff
+    x_max = max(arr1.x.max().item(), arr2.x.max().item())+buff
 
     # Determine the common resolution (assume regular grids and identical resolutions)
     y_res = min(np.abs(arr1.y[1] - arr1.y[0]).item(), np.abs(arr2.y[1] - arr2.y[0]).item())
@@ -244,27 +171,18 @@ def mosaic_xarray(arr1, arr2):
 
     # Create new coordinates
     new_y = np.arange(y_min, y_max + y_res, y_res)
+    if not is_ascending(arr1.y):
+        new_y = new_y[::-1]
     new_x = np.arange(x_min, x_max + x_res, x_res)
+    if not is_ascending(arr1.x):
+        new_x = new_x[::-1]
 
     # Create a new DataArray with the expanded coordinates filled with NaNs
     new_shape = (len(new_y), len(new_x))
     new_data1 = np.full(new_shape, np.nan)
-    new_data2 = np.full(new_shape, np.nan)
 
-    new_arr1 = xr.DataArray(new_data1, coords=[new_y, new_x], dims=["y", "x"])
-    new_arr2 = xr.DataArray(new_data2, coords=[new_y, new_x], dims=["y", "x"])
-
-    # Reindex the original arrays to the new coordinates
-    arr1_reindexed = arr1.reindex_like(new_arr1, method="nearest")
-    arr2_reindexed = arr2.reindex_like(new_arr2, method="nearest")
-
-    # Merge the two arrays
-    combined_data = np.nanmax(np.stack([arr1_reindexed, arr2_reindexed], axis=0), axis=0)
-
-    # Create the final mosaic array
-    mosaic = xr.DataArray(combined_data, coords=[new_y, new_x], dims=["y", "x"])
-
-    return mosaic
+    new_arr = xr.DataArray(new_data1, coords=[new_y, new_x], dims=["y", "x"])
+    return new_arr
 
 
 def add_geobox(ds, crs=None):
@@ -304,3 +222,103 @@ def add_geobox(ds, crs=None):
         )
 
     return ds
+
+
+def update_with_coords(data1, data2):
+    # Find the nearest coordinates in data1 for data2
+    nearest_start_x = data1.x.sel(x=data2.x[0], method='nearest')
+    nearest_start_y = data1.y.sel(y=data2.y[-1], method='nearest')    # Determine the range to replace in data1
+
+    x_start_index = np.searchsorted(data1.x, nearest_start_x)
+    x_end_index = x_start_index + len(data2.x)
+    y_start_index = np.searchsorted(data1.y, nearest_start_y)
+    y_end_index = y_start_index + len(data2.y)
+
+    data1.loc[dict(x=data1.x[x_start_index:x_end_index], y=data1.y[y_start_index:y_end_index])] = data2.to_numpy()[::-1]
+    
+    return data1
+
+
+def idw_mosaic(arr1, arr2, DEBUG=False):
+
+    base_grid = create_encompassing_grid(arr1, arr2)
+    d = np.zeros(base_grid.shape)
+    base_grid.data = d
+
+    logging.info(arr1.shape)
+    logging.info(arr2.shape)
+    
+    arr1 = arr1.fillna(0)
+    arr2 = arr2.fillna(0)
+    
+    l1_grid = update_with_coords(copy.deepcopy(base_grid), arr1.compute())
+    l2_grid = update_with_coords(copy.deepcopy(base_grid), arr2.compute())
+
+    l1_grid.rio.write_crs(arr1.rio.crs, inplace=True)
+    l2_grid.rio.write_crs(arr2.rio.crs, inplace=True)
+
+    l1_mask = xr.where(l1_grid > 0, 1, 0).compute()
+    
+    l2_mask = xr.where(l2_grid > 0, 1, 0).compute()
+
+    # return
+    # Calculate Polygons
+    p1 = xr_vectorize(arr1>0, coarsen_by=1)
+    p2 = xr_vectorize(arr2>0, coarsen_by=1)
+    p1 = unary_union(p1.geometry)
+    p2 = unary_union(p2.geometry)
+
+    def to_line(p):
+        if isinstance(p, shapely.geometry.MultiPolygon):
+            return MultiLineString([LineString(polygon.exterior.coords) for polygon in p.geoms])
+        return MultiLineString(p.exterior.coords)
+    
+    def exponential_weighting(d1, d2, lambd):
+        w1 = np.exp(-lambd * d1)
+        w2 = np.exp(-lambd * d2)
+        sum_w = w1 + w2
+        w1 /= sum_w
+        w2 /= sum_w
+        return w1, w2
+
+    intersection_polygon=p1.intersection(p2)
+    l1 = to_line(p1).intersection(intersection_polygon)
+    l2 = to_line(p2).intersection(intersection_polygon)
+
+    # p2.to_file('p2.gpkg')
+    dl1 = calculate_distances_to_edges(l1_grid, l1, intersection_polygon)
+    dl2 = calculate_distances_to_edges(l2_grid, l2, intersection_polygon)
+
+    dl1 = xr.where(dl1 > 0, dl1, np.nan)
+    dl2 = xr.where(dl2 > 0, dl2, np.nan)
+
+    lamb = 0.5
+    METHOD="IDW"
+    
+    if METHOD == "IDW":
+        denom = dl1 + dl2
+        dl1 = dl1 / denom 
+        dl2 = dl2 / denom 
+        
+    if METHOD == "EXPO":
+        dl1, dl2 = exponential_weighting(dl1, dl2, lamb)
+
+    l1_mask = dl1.combine_first(l1_mask)
+    l2_mask = dl2.combine_first(l2_mask)
+    
+    if DEBUG:
+        compressRaster(l1_grid, "l1_grid.tif")
+        compressRaster(l2_grid, "l2_grid.tif")
+        compressRaster(l1_mask, "l1_mask.tif")
+        compressRaster(l2_mask, "l2_mask.tif")
+        
+        compressRaster(dl1, "dl1.tif")
+        compressRaster(dl2, "dl2.tif")
+    
+    to_return = l1_mask * l1_grid + l2_mask * l2_grid
+    to_return.rio.write_crs(arr1.rio.crs, inplace=True)
+    to_return.rio.write_nodata(0, inplace=True)
+    return to_return
+    
+
+    return

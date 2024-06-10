@@ -124,7 +124,9 @@ def makeSafe_rio(ds):
 def compressRaster(ds: xr.DataArray | xr.Dataset, output_path):
     id = str(uuid.uuid4())
     tmp_rast = f"/tmp/{id}.tiff"
-    ds.rio.to_raster(tmp_rast)
+    if 'grid_mapping' in ds.attrs:
+        del ds.attrs['grid_mapping']
+    ds.rio.to_raster(tmp_rast, compress='zstd')
     if os.path.exists(output_path):
         os.remove(output_path)
     bashCommand = f"gdalwarp {tmp_rast} {output_path} -of COG -co COMPRESS=LZW -co STATISTICS=YES"

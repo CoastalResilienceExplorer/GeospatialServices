@@ -199,7 +199,10 @@ async def trigger():
     })
 
     return ("Complete", 200)
-    
+
+
+@app.get('/mosaic')
+
 
 @app.get('/backfill')
 def backfill():
@@ -250,6 +253,7 @@ def get_downloads():
 
 @app.route('/get_data', methods=["GET"])
 async def get_data():
+    logging.info(request.args)
 
     data_type = request.args.get('type')
     PROJECT = request.args.get('project')
@@ -305,9 +309,13 @@ async def get_data():
         shutil.make_archive(os.path.join(download_dir, data_type), 'zip', zarr, zarr)
         return flask.send_from_directory(download_dir, f'{data_type}.zip')
 
+
 @app.get("/")
 def test():
     return "OK"
+
+from pipelines.main import pipeline_runner
+pipeline_runner(app)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)), debug=True)

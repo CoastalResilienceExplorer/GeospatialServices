@@ -85,6 +85,17 @@ services:
       MOUNT_PATH: ${MOUNT_PATH}
       OUTPUT_BUCKET_PMTILES: ${OUTPUT_BUCKET_PMTILES}
 
+  mosaic:
+    build:
+      context: ./Mosaic
+    volumes:
+      - ./Mosaic:/app
+      - ${DATA_FOLDER}:/app/data
+    ports:
+      - "3006:8080"
+    environment: 
+      MOUNT_PATH: ${MOUNT_PATH}
+
   nginx:
     build: ./nginx
     ports:

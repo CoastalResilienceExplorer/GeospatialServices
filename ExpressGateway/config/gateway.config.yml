@@ -44,7 +44,14 @@ apiEndpoints:
     - '/get_tasks/'
     - '/status/'
     - '/backfill/'
+    - '/pipeline/'
+  mosaic:
+    host: '*'
+    paths:
+    - '/mosaic/'
 serviceEndpoints:
+  mosaic:
+    url: 'http://molokai.pbsci.ucsc.edu:3006'
   trigger:
     url: 'http://molokai.pbsci.ucsc.edu:3005'
   geoparquet2pmtiles:
@@ -114,5 +121,15 @@ pipelines:
       - proxy:
           - action:
               serviceEndpoint: trigger
+              changeOrigin: true
+  mosaic:
+    apiEndpoints:
+      - mosaic
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: mosaic
               changeOrigin: true
 

@@ -14,3 +14,4 @@ gunicorn
 dask
 odc-geo
 scipy
+tqdm

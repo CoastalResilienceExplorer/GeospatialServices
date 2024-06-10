@@ -174,6 +174,7 @@ async def zarr_to_tiff():
             except:
                 pass
             ds.rio.write_grid_mapping(inplace=True)
+            logging.info(ds.rio.crs)
             ds.rio.write_crs(zarr_dataset.rio.crs, inplace=True)
             tasks.append(loop.run_in_executor(executor, compressRaster, ds, os.path.join(request.form['output'], f'{var}.tif')))
         responses = await asyncio.gather(*tasks)
