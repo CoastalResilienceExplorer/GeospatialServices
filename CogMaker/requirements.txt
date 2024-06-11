@@ -1,3 +1,13 @@
+xarray
+pandas
+geopandas
+rioxarray
+rasterio
+h5netcdf
+matplotlib
+flask
+fastapi
+
 Flask
 gunicorn
 google-events
@@ -9,4 +19,8 @@ dask
 zarr
 gcsfs
 uvicorn[standard]
-gunicorn
+
+scipy
+
+flask[async]
+
