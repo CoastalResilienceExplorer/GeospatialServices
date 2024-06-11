@@ -115,3 +115,7 @@ def get_nsi_damages(ds, gdf):
     x = apply_ddf(gdf_points, id)
     return x[0]
 
+
+def get_nsi_damage_tractbased(ds):
+    
+    features = 
