@@ -12,6 +12,7 @@ RUN make install
 
 WORKDIR /app
 COPY . /app/
+RUN apt update
 RUN apt install -y gdal-bin libgdal-dev
 RUN pip3 install -r requirements.txt
 

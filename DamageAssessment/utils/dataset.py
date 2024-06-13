@@ -6,6 +6,7 @@ import rioxarray as rxr
 import subprocess
 import uuid
 import math
+from glob import glob
 
 
 TMP_FOLDER='/tmp'
@@ -118,6 +119,7 @@ def makeSafe_rio(ds):
         if not line: break
         print(line, flush=True)
     x = rxr.open_rasterio(tmp_cog2).isel(band=0)
+    os.remove(tmp_cog1)
     return x
 
 
@@ -131,6 +133,7 @@ def compressRaster(ds: xr.DataArray | xr.Dataset, output_path):
         line = process.stdout.readline()
         if not line: break
         print(line, flush=True)
+    os.remove(tmp_rast)
     return output_path
 
 def maskEdge(ds):
@@ -140,3 +143,11 @@ def maskEdge(ds):
                     (ds.coords[ds.dims[1]] == ds.coords[ds.dims[1]].values[0]) | \
                     (ds.coords[ds.dims[1]] == ds.coords[ds.dims[1]].values[width - 1])
     return ds * (edge_mask.astype(int) * -1 + 1)
+
+
+def open_as_ds(path, suffix=".tif"):
+    data = glob(os.path.join(path, f"*{suffix}"))
+    data = [
+        rxr.open_rasterio(i).isel(band=0).rename(i.split('/')[-1].split('.')[0]) for i in data
+    ]
+    return xr.merge(data)

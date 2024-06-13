@@ -12,6 +12,7 @@ services:
       OUTPUT_BUCKET_RASTER: ${OUTPUT_BUCKET_RASTER}
       OUTPUT_BUCKET_VECTOR: ${OUTPUT_BUCKET_VECTOR}
       MNT_BASE: ${MNT_BASE}
+    # entrypoint: python3 app.py
 
   cogmaker:
     build:
@@ -26,6 +27,7 @@ services:
       - "3002:8080"
     environment:
       OUTPUT_BUCKET: ${OUTPUT_BUCKET_RASTER}
+    # entrypoint: python3 app.py
 
   cog2pt:
     privileged: true
@@ -65,6 +67,7 @@ services:
       context: ./ExpressGateway
     volumes:
       - ./ExpressGateway:/app
+      - ${SSL_DIR}:/app/ssl
     ports:
       - "3000:8080"
 
@@ -76,10 +79,51 @@ services:
       - ./Trigger:/app
       - ${DATA_FOLDER}:/app/data
     ports:
-      - "443:8080"
+      - "3005:8080"
     environment: 
       HOST: ${HOST}
-    
+      MOUNT_PATH: ${MOUNT_PATH}
+      OUTPUT_BUCKET_PMTILES: ${OUTPUT_BUCKET_PMTILES}
 
-    
+  mosaic:
+    build:
+      context: ./Mosaic
+    volumes:
+      - ./Mosaic:/app
+      - ${DATA_FOLDER}:/app/data
+    ports:
+      - "3006:8080"
+    environment: 
+      MOUNT_PATH: ${MOUNT_PATH}
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "443:443"
+    depends_on:
+      - express_gateway
+    volumes:
+      - ${SSL_DIR}:/etc/nginx/certs
+
+  redis:
+    image: redis/redis-stack:latest
+    ports:
+      - 6379:6379
+      - 8001:8001
+    volumes:
+      - /RedisData:/data
+    environment:
+      REDIS_ARGS: --save 60 1000 --appendonly yes
+
+  # summary_stats:
+  #   build:
+  #     context: ./SummaryStats
+  #   volumes:
+  #     - ./ExpressGateway:/app
+  #   ports:
+  #     - 3006:8080
+  #   environment:
+  #     MOUNT_PATH: ${MOUNT_PATH}
+
+
 
