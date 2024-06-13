@@ -1,17 +1,15 @@
 import os
 import logging
 from flask import Flask, request
-import flask
 import geopandas as gpd
 import pandas as pd
-import s2sphere
 import xarray as xr
 import rioxarray as rxr
 # from vectorize import xr_vectorize
 import uuid, json, copy
 import numpy as np
 import gc
-from utils.dataset import get_resolution
+from utils.dataset import get_resolution, open_as_ds
 import math
 
 logging.basicConfig()
@@ -154,7 +152,7 @@ def to_extent():
 def zarr2pt():
     """Handle tile requests."""
     data = request.get_json()
-    raster = xr.open_zarr(data['data'])
+    raster = open_as_ds(data['data'])
 
     res = get_resolution(raster)
     try: 

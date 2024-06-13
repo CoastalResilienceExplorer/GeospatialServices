@@ -23,8 +23,8 @@ from utils.generators import assert_done, \
     exposure_generator, \
     damages_generator, \
     population_generator, \
-    zarr_build_generator, \
     aev_generator, \
+    apply_dollar_weights_generator, \
     zarr2pt_generator, \
     pmtiles_generator
 
@@ -37,9 +37,9 @@ TASKS = [
     "DAMAGES",
     "EXPOSURE",
     "POPULATION",
-    "ZARR_BUILD",
     "AEV_DAMAGES",
     "AEV_POPULATION",
+    "APPLY_DOLLAR_VALUES",
     "ZARR2PT",
     "PMTILES",
 ]
@@ -51,9 +51,9 @@ if CLEAN_SLATE:
         "DAMAGES",
         "EXPOSURE",
         "POPULATION",
-        "ZARR_BUILD",
         "AEV_DAMAGES",
         "AEV_POPULATION",
+        "APPLY_DOLLAR_VALUES",
         "ZARR2PT",
         "PMTILES",
     ]
@@ -102,7 +102,10 @@ async def trigger():
     DATA = request.files['data'].read()
     paths = get_paths(PROJECT, KEY)
 
-    r.delete(SUBMISSION_ID)
+    if CLEAN_SLATE:
+        r.delete(SUBMISSION_ID)
+        if os.path.exists(paths['BASE']):
+            shutil.rmtree(paths['BASE'])
 
     r.hset(SUBMISSION_ID, mapping={
         "status": "STARTED",
@@ -113,11 +116,7 @@ async def trigger():
     })
 
     save_submission(DATA, f'{SUBMISSION_ID}.zip')
-
-    if CLEAN_SLATE:
-        if os.path.exists(paths['BASE']):
-            shutil.rmtree(paths['BASE'])
-
+    
     initialize_paths(paths)
 
     with zipfile.ZipFile(io.BytesIO(DATA), 'r') as zip_ref:
@@ -136,37 +135,43 @@ async def trigger():
         "DAMAGES": {
             "runner": async_runner,
             "args": (damages_generator(paths), SUBMISSION_ID, "DAMAGES", assert_done),
-            "kwargs": {"tries": 2, "workers": 32}
+            "kwargs": {"tries": 4, "workers": 16}
         },
 
         "EXPOSURE": {
             "runner": async_runner,
             "args": (exposure_generator(paths), SUBMISSION_ID, "EXPOSURE", assert_done),
-            "kwargs": {"tries": 2, "workers": 32}
+            "kwargs": {"tries": 5, "workers": 10}
         },
 
         "POPULATION": {
             "runner": async_runner,
             "args": (population_generator(paths), SUBMISSION_ID, "POPULATION", assert_done),
-            "kwargs": {"tries": 2, "workers": 32}
+            "kwargs": {"tries": 4, "workers": 10}
         },
 
-        "ZARR_BUILD": {
-            "runner": async_runner,
-            "args": (zarr_build_generator(DATA_OUTPUTS, paths), SUBMISSION_ID, "ZARR_BUILD", assert_done),
-            "kwargs": {"tries": 4, "workers": 4}
-        },
+        # "ZARR_BUILD": {
+        #     "runner": async_runner,
+        #     "args": (zarr_build_generator(DATA_OUTPUTS, paths), SUBMISSION_ID, "ZARR_BUILD", assert_done),
+        #     "kwargs": {"tries": 4, "workers": 4}
+        # },
 
         "AEV_DAMAGES": {
             "runner": async_runner,
             "args": (aev_generator(request.form['template'], 'AEV-Econ', request.form['rps'], paths, 'damages'), SUBMISSION_ID, "AEV_DAMAGES", assert_done),
-            "kwargs": {"tries": 6, "workers": 4}
+            "kwargs": {"tries": 6, "workers": 2}
         },
 
         "AEV_POPULATION": {
             "runner": async_runner,
             "args": (aev_generator(request.form['template'], 'AEV-Pop', request.form['rps'], paths, 'population'), SUBMISSION_ID, "AEV_POPULATION", assert_done),
-            "kwargs": {"tries": 6, "workers": 4}
+            "kwargs": {"tries": 6, "workers": 2}
+        },
+        
+        "APPLY_DOLLAR_VALUES": {
+            "runner": async_runner,
+            "args": (apply_dollar_weights_generator(paths, 'damages'), SUBMISSION_ID, "APPLY_DOLLAR_VALUES", assert_done),
+            "kwargs": {"tries": 1, "workers": 10}
         },
 
         "ZARR2PT": {
@@ -279,18 +284,9 @@ async def get_data():
                 
         else:
             f(*args)
-    
-    if FORMAT == "nc":
-        url = f'{os.getenv("HOST")}/zarr_to_netcdf/'
-        output = os.path.join(download_dir, f'{data_type}.nc')
 
-        def f( url, zarr, output): 
-            requests.post(url, data={"zarr": zarr, "output": nc})
-            return flask.send_from_directory(download_dir, f'{data_type}.nc')
-        
-        return return_with_cache(f, p, [url, zarr, output])
 
-    elif FORMAT == "tif":
+    if FORMAT == "tif":
         url = f'{os.getenv("HOST")}/zarr_to_tiff/'
         archive_dir = os.path.join(download_dir, "tifs", data_type)
         if not os.path.exists(archive_dir):
@@ -298,16 +294,14 @@ async def get_data():
         
         tiff_zip = os.path.join(download_dir, f"{data_type}.zip")
 
-        def f(url, zarr, archive_dir):
-            requests.post(url, data={"zarr": zarr, "output": archive_dir})
+        def f(archive_dir):
+            for i in glob(os.path.join(paths[data_type], f"*.tif")):
+                fname = i.split('/')[-1]
+                shutil.copyfile(i, os.path.join(archive_dir, fname))
             shutil.make_archive(os.path.join(download_dir, data_type), 'zip', archive_dir, archive_dir)
 
-        compute_and_cache(f, tiff_zip, [url, zarr, archive_dir])
+        compute_and_cache(f, tiff_zip, [archive_dir])
         return flask.send_from_directory(download_dir, f"{data_type}.zip")
-        
-    else:
-        shutil.make_archive(os.path.join(download_dir, data_type), 'zip', zarr, zarr)
-        return flask.send_from_directory(download_dir, f'{data_type}.zip')
 
 
 @app.get("/")

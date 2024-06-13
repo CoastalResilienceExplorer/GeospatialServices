@@ -1,5 +1,5 @@
 CRS=EPSG:32618
-INDIR=/GeospatialServicesData/NBS_ADAPTS/Dom02/init
+INDIR=/GeospatialServicesData/NBS_ADAPTS/JAM/flooding
 OUTDIR=/users/chlowrie/TestData/TEST_NBS_ADAPTS
 
 rm -r $OUTDIR/*

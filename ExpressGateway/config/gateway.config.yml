@@ -24,6 +24,8 @@ apiEndpoints:
     paths:
     - '/damage/dlr_guf/'
     - '/damage/dlr_guf/exposure'
+    - '/damage/dlr_guf/exposure'
+    - '/damage/apply_dollar_weights'
     - '/population/GHSL_2020_100m'
     - '/aev/'
   cog2pt:

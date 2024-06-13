@@ -5,15 +5,24 @@ from rasterio.errors import NotGeoreferencedWarning
 import warnings
 from utils.dataset import get_resolution, degrees_to_meters
 from utils.damages import apply_ddf
+from utils.geo import clip_dataarray_by_geometries
 import subprocess
 import numpy as np
 import math
+
+import geopandas as gpd
+import logging
 
 
 BUILDING_AREA = 'gs://supporting-data2/WSF3d_v02_BuildingArea.tif'
 DDF = './damage_data/damage/DDF_Global.csv'
 MAXDAMAGE = './damage_data/damage/MaxDamage_per_m2.csv'
 COUNTRY = "OneDollar"
+GADM = "gs://supporting-data2/gadm_country_bounds.parquet"
+# COUNTRY = "Dominican Republic"
+
+
+
 
 
 def main(flooding: xr.Dataset | xr.DataArray, window=0, population_min=5):
@@ -146,3 +155,15 @@ def AEV(ds, rps, keys, id, year_of_zero_damage=2.):
         keep_attrs=True
     ).rename(id)
     return to_return
+
+
+def apply_dollar_weights(ds):
+    return
+    gadm = gpd.read_parquet(GADM).set_crs(4326, allow_override=True).to_crs(ds.rio.crs)
+    bounds = ds.rio.bounds()
+    minx, miny, maxx, maxy = bounds
+    
+    # Clip the GeoDataFrame using the .cx accessor
+    gadm = gadm.cx[minx:maxx, miny:maxy]
+    clip_dataarray_by_geometries(ds, gadm)
+    logging.info(gadm)

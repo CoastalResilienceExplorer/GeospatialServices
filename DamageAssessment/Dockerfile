@@ -9,4 +9,4 @@ RUN pip3 install -r requirements.txt --break-system-packages
 COPY . /app
 
 ENTRYPOINT [ "gunicorn" ]
-CMD [ "app:app", "--bind", "0.0.0.0:8080", "--workers", "40", "--max-requests", "3", "--max-requests-jitter", "3", "--timeout", "3600" ]
+CMD [ "app:app", "--bind", "0.0.0.0:8080", "--workers", "16", "--max-requests", "1", "--max-requests-jitter", "2", "--timeout", "3600" ]

@@ -55,3 +55,24 @@ def rescale_raster(ds):
     # Might be nice to wrap this into our own rxr import
     ds = ds * ds.attrs['scale_factor'] + ds.attrs['add_offset']
     return ds
+
+
+def clip_dataarray_by_geometries(ds, gdf):
+    """
+    Clips a rioxarray DataArray by each geometry in a GeoDataFrame.
+
+    Parameters:
+    dataarray (rioxarray.DataArray): The input dataarray to be clipped.
+    geodf (geopandas.GeoDataFrame): The geodataframe containing the geometries for clipping.
+
+    Returns:
+    list: A list of clipped rioxarray DataArrays.
+    """
+    clipped_arrays = []
+
+    for idx, row in gdf.iterrows():
+        geometry = row['geometry']
+        clipped_array = ds.rio.clip([geometry], ds.rio.crs, drop=True)
+        clipped_arrays.append(clipped_array)
+
+    return clipped_arrays
