@@ -1,5 +1,5 @@
 services:
-  damage_assessment:
+  damage:
     build:
       context: ./DamageAssessment
     volumes:
@@ -11,7 +11,13 @@ services:
     environment:
       OUTPUT_BUCKET_RASTER: ${OUTPUT_BUCKET_RASTER}
       OUTPUT_BUCKET_VECTOR: ${OUTPUT_BUCKET_VECTOR}
-      MNT_BASE: ${MNT_BASE}
+      GCS_MNT_BASE: ${GCS_MNT_BASE}
+      MNT_BUCKETS: supporting-data2
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse
+    platform: linux/amd64
     # entrypoint: python3 app.py
 
   cogmaker:
@@ -27,6 +33,7 @@ services:
       - "3002:8080"
     environment:
       OUTPUT_BUCKET: ${OUTPUT_BUCKET_RASTER}
+    platform: linux/amd64
     # entrypoint: python3 app.py
 
   cog2pt:
@@ -67,9 +74,13 @@ services:
       context: ./ExpressGateway
     volumes:
       - ./ExpressGateway:/app
-      - ${SSL_DIR}:/app/ssl
+      # - ${SSL_DIR}:/app/ssl
+    environment:
+      HOST: ${HOST}
+      LOG_LEVEL: debug
     ports:
       - "3000:8080"
+    platform: linux/amd64
 
   trigger:
     build:
@@ -95,28 +106,30 @@ services:
       - "3006:8080"
     environment: 
       MOUNT_PATH: ${MOUNT_PATH}
+    platform: linux/amd64
 
-  getfeatures:
-    build:
-      context: ./GetFeatures
-      args:
-        BASE_IMAGE: ${BASE_IMAGE}
-    volumes:
-      - ./Mosaic:/app
-      - ${DATA_FOLDER}:/app/data
-    ports:
-      - "3006:8080"
-    environment: 
-      MOUNT_PATH: ${MOUNT_PATH}
+  # getfeatures:
+  #   build:
+  #     context: ./GetFeatures
+  #     args:
+  #       BASE_IMAGE: ${BASE_IMAGE}
+  #   volumes:
+  #     - ./GetFeatures:/app
+  #     - ${GCP_CREDS}:/root/.config/gcloud
+  #     # - ${DATA_FOLDER}:/app/data
+  #   ports:
+  #     - "3007:8080"
+  #   environment: 
+  #     MNT_BUCKETS: supporting-data2
 
-  nginx:
-    build: ./nginx
-    ports:
-      - "443:443"
-    depends_on:
-      - express_gateway
-    volumes:
-      - ${SSL_DIR}:/etc/nginx/certs
+  # nginx:
+  #   build: ./nginx
+  #   ports:
+  #     - "443:443"
+  #   depends_on:
+  #     - express_gateway
+  #   volumes:
+  #     - ${SSL_DIR}:/etc/nginx/certs
 
   redis:
     image: redis/redis-stack:latest
@@ -124,7 +137,7 @@ services:
       - 6379:6379
       - 8001:8001
     volumes:
-      - /RedisData:/data
+      - $REDIS_DATA:/data
     environment:
       REDIS_ARGS: --save 60 1000 --appendonly yes
 

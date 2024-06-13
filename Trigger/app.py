@@ -136,19 +136,19 @@ async def trigger():
         "DAMAGES": {
             "runner": async_runner,
             "args": (damages_generator(paths), SUBMISSION_ID, "DAMAGES", assert_done),
-            "kwargs": {"tries": 2, "workers": 32}
+            "kwargs": {"tries": 4, "workers": 16}
         },
 
         "EXPOSURE": {
             "runner": async_runner,
             "args": (exposure_generator(paths), SUBMISSION_ID, "EXPOSURE", assert_done),
-            "kwargs": {"tries": 2, "workers": 32}
+            "kwargs": {"tries": 4, "workers": 16}
         },
 
         "POPULATION": {
             "runner": async_runner,
             "args": (population_generator(paths), SUBMISSION_ID, "POPULATION", assert_done),
-            "kwargs": {"tries": 2, "workers": 32}
+            "kwargs": {"tries": 4, "workers": 16}
         },
 
         "ZARR_BUILD": {

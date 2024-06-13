@@ -23,8 +23,9 @@ apiEndpoints:
     host: '*'
     paths:
     - '/damage/dlr_guf/'
-    - '/damage/dlr_guf/exposure'
-    - '/population/GHSL_2020_100m'
+    - '/damage/dlr_guf/exposure/'
+    - '/damage/nsi/generic/'
+    - '/population/GHSL_2020_100m/'
     - '/aev/'
   cog2pt:
     host: '*'
@@ -50,18 +51,30 @@ apiEndpoints:
     paths:
     - '/mosaic/'
 serviceEndpoints:
+  # mosaic:
+  #   url: 'http://molokai.pbsci.ucsc.edu:3006'
+  # trigger:
+  #   url: 'http://molokai.pbsci.ucsc.edu:3005'
+  # geoparquet2pmtiles:
+  #   url: 'http://molokai.pbsci.ucsc.edu:3004'
+  # cogmaker:
+  #   url: 'http://molokai.pbsci.ucsc.edu:3002'
+  # cog2pt:
+  #   url: 'http://molokai.pbsci.ucsc.edu:3003'
+  # damage:
+  #   url: 'http://molokai.pbsci.ucsc.edu:3001'
   mosaic:
-    url: 'http://molokai.pbsci.ucsc.edu:3006'
+    url: 'http://mosaic:8080'
   trigger:
-    url: 'http://molokai.pbsci.ucsc.edu:3005'
+    url: 'http://trigger:8080'
   geoparquet2pmtiles:
-    url: 'http://molokai.pbsci.ucsc.edu:3004'
+    url: 'http://geoparquet2pmtiles:8080'
   cogmaker:
-    url: 'http://molokai.pbsci.ucsc.edu:3002'
+    url: 'http://cogmaker:8080'
   cog2pt:
-    url: 'http://molokai.pbsci.ucsc.edu:3003'
+    url: 'http://cog2pt:8080'
   damage:
-    url: 'http://molokai.pbsci.ucsc.edu:3001'
+    url: 'http://damage:8080'
 policies:
   - basic-auth
   - cors
@@ -91,7 +104,7 @@ pipelines:
       - proxy:
           - action:
               serviceEndpoint: cogmaker
-              changeOrigin: true
+              # changeOrigin: true
   cog2pt:
     apiEndpoints:
       - cog2pt

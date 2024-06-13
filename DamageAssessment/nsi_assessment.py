@@ -1,10 +1,11 @@
-from get_features import get_features_unpartitioned
+from utils.get_features import get_features_unpartitioned, get_osm, get_open_buildings
 from utils.geo import extract_z_values
 from utils.cache import memoize_with_persistence
 import pandas as pd
 import copy
 from collections import OrderedDict
 import numpy as np
+
 
 def apply_ddf(
     features,
@@ -114,8 +115,3 @@ def get_nsi_damages(ds, gdf):
     gdf_points = gdf_points[gdf_points[id] > 0]
     x = apply_ddf(gdf_points, id)
     return x[0]
-
-
-def get_nsi_damage_tractbased(ds):
-    
-    features = 
