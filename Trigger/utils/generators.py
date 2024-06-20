@@ -187,11 +187,12 @@ def apply_dollar_weights_generator(paths, data_type):
 
     def f():
         for i in glob(os.path.join(paths[data_type], f"*.tif")):
+            fname = i.split('/')[-1]
             data = {
-                "damages": i,
-                "output": i
+                "input": i,
+                "output": os.path.join(paths['damages_scaled'], fname)
             }
-            yield (post, url, data, None)
+            yield (post_json, url, data)
     
     return f
 
@@ -259,12 +260,23 @@ def zarr_build_generator2(paths, to_run=['flooding']):
             "output": f"{i}.zarr",
         }
         yield (post, url, data, None)
+        
+# def summary_stats_generator(paths, files, project, key, to_run=['flooding', 'damages_scaled', 'population']):
+def summary_stats_generator(paths, files, project, key, to_run=['flooding']):
+    url=f'{os.getenv("HOST")}/summary_stats/'
+    for i in to_run:
+        data = {
+            "input": paths[i],
+            "project": project,
+            "key": key
+        }
+        yield (post, url, data, files, None)
 
 
 async def async_runner2(id, task, generator, kwargs, pass_assertion=assert_done, tries=3, workers=10, incremental_retry=True):
 
     data = [i for i in generator(**kwargs)]
-    logging.info(data)
+    # logging.info(data)
     idxs = [False for i in data]
     r.hset(id, mapping={task: "STARTED"})
     async def do_work(data):

@@ -5,7 +5,7 @@ import pandas as pd
 import xarray as xr
 import numpy as np
 from rasterio.sample import sample_gen
-from utils.cache import memoize_geospatial_with_persistence
+from rioxarray.exceptions import NoDataInBounds
 
 import pyproj
 from shapely.geometry import Point
@@ -13,6 +13,9 @@ from shapely.ops import transform
 
 import copy
 import logging
+
+import xvec
+from tqdm import tqdm
 
 
 
@@ -70,16 +73,14 @@ def clip_dataarray_by_geometries(ds, gdf):
     Returns:
     list: A list of clipped rioxarray DataArrays.
     """
-    clipped_arrays = dict()
-
-    for idx, row in gdf.iterrows():
-        geometry = row['geometry']
-        try: 
-            clipped_array = ds.rio.clip([geometry], ds.rio.crs, all_touched=True, drop=False, invert=False)
-            clipped_array = xr.where(clipped_array > 0, 1, 0)
-            if clipped_array.max() > 0:
-                clipped_arrays[idx] = clipped_array
+    
+    clipped_arrays = []
+    for i in tqdm(gdf.geometry):
+        try:
+            ds2 = ds.rio.clip_box(*i.bounds)
+            ds2 = ds2.rio.clip([i], ds.rio.crs, all_touched=True, drop=True, invert=False)
+            clipped_arrays.append(ds2)
         except:
-            continue
-
+            clipped_arrays.append(ds * 0)
+            
     return clipped_arrays

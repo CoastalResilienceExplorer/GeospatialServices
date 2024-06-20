@@ -67,6 +67,7 @@ def api_damage_assessment_aev():
     # damages.rio.write_crs(ds.rio.crs, inplace=True)
     # damages.rio.write_nodata(0, inplace=True)
     damages = damages.assign_attrs(**ds.attrs)
+    damages.rio.write_crs(ds.rio.crs, inplace=True)
     compressRaster(damages, os.path.join(request.form['output'], f'{id}.tif'))
     return ("complete", 200)
     
@@ -103,11 +104,11 @@ def api_nsi_assessment():
 
 @app.route('/damage/apply_dollar_weights/', methods=["POST"])
 def api_apply_dollar_weights():
-    # ds = rxr.open_rasterio(
-    #     request.form['damages']
-    # ).isel(band=0)
-    # apply_dollar_weights(ds)
-    return ("failed", 500 )
+    data = request.get_json()
+    ds = rxr.open_rasterio(data['input'])
+    ds = apply_dollar_weights(ds)
+    compressRaster(ds, data['output'])
+    return ("completed", 200 )
 
 
 @app.get("/")

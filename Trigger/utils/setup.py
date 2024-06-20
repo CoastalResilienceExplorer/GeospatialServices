@@ -4,7 +4,7 @@ from flask import request
 import shutil
 
 def get_paths(project, key):
-    paths_to_create = ["init", "flooding", "damages", "exposure", "population", "downloads"]
+    paths_to_create = ["init", "flooding", "damages", "exposure", "population", "downloads", "damages_scaled"]
     base = os.path.join(os.getenv("MOUNT_PATH"), project, key)
     paths = {i: os.path.join(base, i) for i in paths_to_create}
     paths['BASE'] = base

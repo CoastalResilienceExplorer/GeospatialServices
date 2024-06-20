@@ -1,12 +1,5 @@
 http:
   port: 8080
-# https:
-#   port: 8080
-#   hostname: localhost
-#   tls:
-#     "molokai.pbsci.ucsc.edu":
-#         key: /app/ssl/molokai.pbsci.ucsc.edu.key
-#         cert: /app/ssl/molokai.pbsci.ucsc.edu_cer.cer
 admin:
   port: 9876
   host: localhost
@@ -51,7 +44,13 @@ apiEndpoints:
     host: '*'
     paths:
     - '/mosaic/'
+  summarystats:
+    host: '*'
+    paths:
+    - '/summary_stats/'
 serviceEndpoints:
+  summarystats:
+    url: 'http://molokai.pbsci.ucsc.edu:3007'
   mosaic:
     url: 'http://molokai.pbsci.ucsc.edu:3006'
   trigger:
@@ -133,5 +132,15 @@ pipelines:
       - proxy:
           - action:
               serviceEndpoint: mosaic
+              changeOrigin: true
+  summarystats:
+    apiEndpoints:
+      - summarystats
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: summarystats
               changeOrigin: true
 

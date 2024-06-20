@@ -27,18 +27,20 @@ from utils.generators import assert_done, \
     apply_dollar_weights_generator, \
     zarr2pt_generator, \
     pmtiles_generator
+    
+from utils.setup import get_paths, initialize_paths
 
 app = Flask(__name__)
 
 CLEAN_SLATE = True
 TASKS = [
-    "SUBMITTED",
-    "COG",
-    "DAMAGES",
-    "EXPOSURE",
-    "POPULATION",
-    "AEV_DAMAGES",
-    "AEV_POPULATION",
+    # "SUBMITTED",
+    # "COG",
+    # "DAMAGES",
+    # "EXPOSURE",
+    # "POPULATION",
+    # "AEV_DAMAGES",
+    # "AEV_POPULATION",
     "APPLY_DOLLAR_VALUES",
     "ZARR2PT",
     "PMTILES",
@@ -66,26 +68,12 @@ DATA_OUTPUTS = [
 ]
 
 
-def get_paths(project, key):
-    paths_to_create = ["init", "flooding", "damages", "exposure", "population", "downloads"]
-    base = os.path.join(os.getenv("MOUNT_PATH"), project, key)
-    paths = {i: os.path.join(base, i) for i in paths_to_create}
-    paths['BASE'] = base
-    return paths
-
-
 def save_submission(data, submission_id):
     SUBMISSION_DIR = f"{os.getenv('MOUNT_PATH')}/submissions"
     if os.path.exists(os.path.join(SUBMISSION_DIR, submission_id)):
         os.remove(os.path.join(SUBMISSION_DIR, submission_id))
     with open(os.path.join(SUBMISSION_DIR, submission_id), 'wb') as f:
         f.write(data)
-
-
-def initialize_paths(paths):
-    for v in paths.values():
-        if not os.path.exists(v):
-            os.makedirs(v)
 
 
 def get_data_output_urls(project, key):
@@ -171,7 +159,7 @@ async def trigger():
         "APPLY_DOLLAR_VALUES": {
             "runner": async_runner,
             "args": (apply_dollar_weights_generator(paths, 'damages'), SUBMISSION_ID, "APPLY_DOLLAR_VALUES", assert_done),
-            "kwargs": {"tries": 1, "workers": 10}
+            "kwargs": {"tries": 1, "workers": 2}
         },
 
         "ZARR2PT": {

@@ -12,7 +12,7 @@ services:
       OUTPUT_BUCKET_RASTER: ${OUTPUT_BUCKET_RASTER}
       OUTPUT_BUCKET_VECTOR: ${OUTPUT_BUCKET_VECTOR}
       MNT_BASE: ${MNT_BASE}
-    # entrypoint: python3 app.py
+    entrypoint: python3 app.py
 
   cogmaker:
     build:
@@ -95,6 +95,18 @@ services:
       - "3006:8080"
     environment: 
       MOUNT_PATH: ${MOUNT_PATH}
+
+  summarystats:
+    build:
+      context: ./SummaryStats
+    volumes:
+      - ./SummaryStats:/app
+      - ${DATA_FOLDER}:/app/data
+    ports:
+      - "3007:8080"
+    environment: 
+      MOUNT_PATH: ${MOUNT_PATH}
+    entrypoint: python3 app.py
 
   nginx:
     build: ./nginx
