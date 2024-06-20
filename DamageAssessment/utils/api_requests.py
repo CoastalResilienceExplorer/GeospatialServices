@@ -16,7 +16,7 @@ logging.root.setLevel(logging.INFO)
 TMP_FOLDER='/tmp'
 GCS_BASE_RASTER=os.environ['OUTPUT_BUCKET_RASTER']
 GCS_BASE_VECTOR=os.environ['OUTPUT_BUCKET_VECTOR']
-MNT_BASE=os.environ['MNT_BASE']
+# MNT_BASE=os.environ['MNT_BASE']
 
 def data_to_parameters_factory(app):
     def data_to_parameters(func):
@@ -44,11 +44,6 @@ def response_to_gpkg_factory(app):
                 assert isinstance(gdf_to_return, gpd.GeoDataFrame)
                 fname=f'{xid}.gpkg'
                 gdf_to_return.to_file(os.path.join(TMP_FOLDER, fname))
-
-                data = request.form
-                if "output_to_gcs" in data.keys():
-                    print(os.path.join(MNT_BASE, GCS_BASE_VECTOR, request.form['output_to_gcs']))
-                    write_partitioned_gdf(gdf_to_return, os.path.join(MNT_BASE, GCS_BASE_VECTOR, request.form['output_to_gcs']))
                 return flask.send_from_directory(TMP_FOLDER, fname)
 
             return wrapper

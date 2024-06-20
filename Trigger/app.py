@@ -129,7 +129,7 @@ async def trigger():
         "EXPOSURE": {
             "runner": async_runner,
             "args": (exposure_generator(paths), SUBMISSION_ID, "EXPOSURE", assert_done),
-            "kwargs": {"tries": 5, "workers": 10}
+            "kwargs": {"tries": 4, "workers": 16}
         },
 
         "POPULATION": {

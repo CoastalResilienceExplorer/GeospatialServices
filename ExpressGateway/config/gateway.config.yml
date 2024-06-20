@@ -1,5 +1,158 @@
 http:
   port: 8080
+# https:
+#   port: 8080
+#   hostname: localhost
+#   tls:
+#     "molokai.pbsci.ucsc.edu":
+#         key: /app/ssl/molokai.pbsci.ucsc.edu.key
+#         cert: /app/ssl/molokai.pbsci.ucsc.edu_cer.cer
+admin:
+  port: 9876
+  host: localhost
+apiEndpoints:
+  cogmaker:
+    host: '*'
+    paths:
+    - '/build_COG/'
+    - '/build_zarr/'
+    - '/zarr_to_netcdf/'
+    - '/zarr_to_tiff/'
+    - '/'
+  damage:
+    host: '*'
+    paths:
+    - '/damage/dlr_guf/'
+    - '/damage/dlr_guf/exposure'
+    - '/damage/dlr_guf/exposure'
+    - '/damage/apply_dollar_weights'
+    - '/population/GHSL_2020_100m'
+    - '/aev/'
+  cog2pt:
+    host: '*'
+    paths:
+    - '/zarr2pt/'
+  geoparquet2pmtiles:
+    host: '*'
+    paths:
+    - '/create_pmtiles/'
+    - '/get_tilesets/'
+  trigger:
+    host: '*'
+    paths:
+    - '/trigger/'
+    - '/get_data/'
+    - '/get_downloads/'
+    - '/get_tasks/'
+    - '/status/'
+    - '/backfill/'
+    - '/pipeline/'
+  mosaic:
+    host: '*'
+    paths:
+    - '/mosaic/'
+  summarystats:
+    host: '*'
+    paths:
+    - '/summary_stats/'
+serviceEndpoints:
+  # mosaic:
+  #   url: 'http://molokai.pbsci.ucsc.edu:3006'
+  # trigger:
+  #   url: 'http://molokai.pbsci.ucsc.edu:3005'
+  # geoparquet2pmtiles:
+  #   url: 'http://molokai.pbsci.ucsc.edu:3004'
+  # cogmaker:
+  #   url: 'http://molokai.pbsci.ucsc.edu:3002'
+  # cog2pt:
+  #   url: 'http://molokai.pbsci.ucsc.edu:3003'
+  # damage:
+  #   url: 'http://molokai.pbsci.ucsc.edu:3001'
+  mosaic:
+    url: 'http://mosaic:8080'
+  trigger:
+    url: 'http://trigger:8080'
+  geoparquet2pmtiles:
+    url: 'http://geoparquet2pmtiles:8080'
+  cogmaker:
+    url: 'http://cogmaker:8080'
+  cog2pt:
+    url: 'http://cog2pt:8080'
+  damage:
+    url: 'http://damage:8080'
+policies:
+  - basic-auth
+  - cors
+  - expression
+  - key-auth
+  - log
+  - oauth2
+  - proxy
+  - rate-limit
+pipelines:
+  damage:
+    apiEndpoints:
+      - damage
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: damage
+              changeOrigin: true
+  cogmaker:
+    apiEndpoints:
+      - cogmaker
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: cogmaker
+              # changeOrigin: true
+  cog2pt:
+    apiEndpoints:
+      - cog2pt
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: cog2pt
+              changeOrigin: true
+  geoparquet2pmtiles:
+    apiEndpoints:
+      - geoparquet2pmtiles
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: geoparquet2pmtiles
+              changeOrigin: true
+  trigger:
+    apiEndpoints:
+      - trigger
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: trigger
+              changeOrigin: true
+  mosaic:
+    apiEndpoints:
+      - mosaic
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: mosaic
+              changeOrigin: true
+
+http:
+  port: 8080
 admin:
   port: 9876
   host: localhost

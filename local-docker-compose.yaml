@@ -1,0 +1,155 @@
+services:
+  damage:
+    build:
+      context: ./DamageAssessment
+    volumes:
+      - ./DamageAssessment:/app
+      - ${GCP_CREDS}:/root/.config/gcloud
+      - ${DATA_FOLDER}:/app/data
+    ports:
+      - "3001:8080"
+    environment:
+      OUTPUT_BUCKET_RASTER: ${OUTPUT_BUCKET_RASTER}
+      OUTPUT_BUCKET_VECTOR: ${OUTPUT_BUCKET_VECTOR}
+      GCS_MNT_BASE: ${GCS_MNT_BASE}
+      MNT_BUCKETS: supporting-data2
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse
+    platform: linux/amd64
+    # entrypoint: python3 app.py
+
+  cogmaker:
+    build:
+      context: ./CogMaker
+      args:
+        BASE_IMAGE: ${BASE_IMAGE}
+    volumes:
+      - ./CogMaker:/app
+      - ${GCP_CREDS}:/root/.config/gcloud
+      - ${DATA_FOLDER}:/app/data
+    ports:
+      - "3002:8080"
+    environment:
+      OUTPUT_BUCKET: ${OUTPUT_BUCKET_RASTER}
+    platform: linux/amd64
+    # entrypoint: python3 app.py
+
+  cog2pt:
+    privileged: true
+    build:
+      context: ./Cog2Point
+      args:
+        BASE_IMAGE: ${BASE_IMAGE}
+    volumes:
+      - ./Cog2Point:/app
+      - ${GCP_CREDS}:/root/.config/gcloud
+      - ${DATA_FOLDER}:/app/data
+    ports:
+      - "3003:8080"
+    environment:
+      MNT_BUCKETS: cogmaker-output-staging;geopmaker-output-staging
+      MNT_BASE: ${MNT_BASE}
+    cap_add:
+      - SYS_ADMIN
+    devices:
+      - /dev/fuse
+
+  geoparquet2pmtiles:
+    privileged: true
+    build:
+      context: ./Geoparquet2Pmtiles
+    volumes:
+      - ./Geoparquet2Pmtiles:/app
+      - ${GCP_CREDS}:/root/.config/gcloud
+      - ${DATA_FOLDER}:/app/data
+    ports:
+      - "3004:8080"
+    environment:
+      OUTPUT_BUCKET: ${OUTPUT_BUCKET_PMTILES}
+  
+  express_gateway:
+    build:
+      context: ./ExpressGateway
+    volumes:
+      - ./ExpressGateway:/app
+      # - ${SSL_DIR}:/app/ssl
+    environment:
+      HOST: ${HOST}
+      LOG_LEVEL: debug
+    ports:
+      - "3000:8080"
+    platform: linux/amd64
+
+  trigger:
+    build:
+      context: ./Trigger
+    entrypoint: "python3 app.py"
+    volumes:
+      - ./Trigger:/app
+      - ${DATA_FOLDER}:/app/data
+    ports:
+      - "3005:8080"
+    environment: 
+      HOST: ${HOST}
+      MOUNT_PATH: ${MOUNT_PATH}
+      OUTPUT_BUCKET_PMTILES: ${OUTPUT_BUCKET_PMTILES}
+
+  mosaic:
+    build:
+      context: ./Mosaic
+    volumes:
+      - ./Mosaic:/app
+      - ${DATA_FOLDER}:/app/data
+    ports:
+      - "3006:8080"
+    environment: 
+      MOUNT_PATH: ${MOUNT_PATH}
+    platform: linux/amd64
+
+  # getfeatures:
+  #   build:
+  #     context: ./GetFeatures
+  #     args:
+  #       BASE_IMAGE: ${BASE_IMAGE}
+  #   volumes:
+  #     - ./GetFeatures:/app
+  #     - ${GCP_CREDS}:/root/.config/gcloud
+  #     # - ${DATA_FOLDER}:/app/data
+  #   ports:
+  #     - "3007:8080"
+  #   environment: 
+  #     MNT_BUCKETS: supporting-data2
+
+  # nginx:
+  #   build: ./nginx
+  #   ports:
+  #     - "443:443"
+  #   depends_on:
+  #     - express_gateway
+  #   volumes:
+  #     - ${SSL_DIR}:/etc/nginx/certs
+
+  redis:
+    image: redis/redis-stack:latest
+    ports:
+      - 6379:6379
+      - 8001:8001
+    volumes:
+      - $REDIS_DATA:/data
+    environment:
+      REDIS_ARGS: --save 60 1000 --appendonly yes
+
+  # summary_stats:
+  #   build:
+  #     context: ./SummaryStats
+  #   volumes:
+  #     - ./ExpressGateway:/app
+  #   ports:
+  #     - 3006:8080
+  #   environment:
+  #     MOUNT_PATH: ${MOUNT_PATH}
+
+
+

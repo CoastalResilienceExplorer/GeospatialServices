@@ -1,6 +1,6 @@
 MOUNT_PATH=/app/data
 
-docker build -t mosaic .
+docker build -t mosaic --platform linux/amd64 .
 docker run -it \
     -v $PWD:/app \
     -v /GeospatialServicesData:/app/data \

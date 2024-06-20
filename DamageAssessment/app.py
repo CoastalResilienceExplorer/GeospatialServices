@@ -9,7 +9,7 @@ import uuid
 
 from utils.api_requests import response_to_tiff_factory, response_to_gpkg_factory, nodata_to_zero
 from utils.dataset import makeSafe_rio, compressRaster, open_as_ds
-from utils.gcs import upload_blob, compress_file
+from utils.get_features import get_features_with_z_values
 from damage_assessment import main as damage_assessment, AEV, exposure, apply_dollar_weights
 from population_assessment import main as population_assessment
 from nsi_assessment import get_nsi, get_nsi_damages
@@ -47,6 +47,7 @@ def api_damage_assessment():
 @response_to_tiff_factory(app)
 @nodata_to_zero
 def api_exposure():
+    logging.info(request.files['flooding'])
     flooding = rxr.open_rasterio(
         request.form["flooding"]
     ).isel(band=0)
@@ -109,6 +110,19 @@ def api_apply_dollar_weights():
     ds = apply_dollar_weights(ds)
     compressRaster(ds, data['output'])
     return ("completed", 200 )
+
+
+@app.route('/damage/nsi/generic/', methods=["POST"])
+@response_to_gpkg_factory(app)
+def api_nsi_assessment_generic():
+    print(request.form)
+    flooding = rxr.open_rasterio(
+        io.BytesIO(request.files['data'].read())
+    ).isel(band=0)
+    x = makeSafe_rio(flooding)
+    damages = get_features_with_z_values(x, **request.form)
+    logging.info(damages)
+    return damages
 
 
 @app.get("/")
