@@ -3,8 +3,8 @@ import xarray as xr
 import pandas as pd
 from rasterio.errors import NotGeoreferencedWarning
 import warnings
-from utils.dataset import get_resolution, get_timestep_as_geo
-from utils.damages import apply_ddf
+from utilities.dataset import get_resolution, get_timestep_as_geo
+from utilities.damages import apply_ddf
 import subprocess
 import numpy as np
 import logging

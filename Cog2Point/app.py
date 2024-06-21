@@ -9,7 +9,7 @@ import rioxarray as rxr
 import uuid, json, copy
 import numpy as np
 import gc
-from utils.dataset import get_resolution, open_as_ds
+from utilities.dataset import get_resolution, open_as_ds
 import math
 
 logging.basicConfig()

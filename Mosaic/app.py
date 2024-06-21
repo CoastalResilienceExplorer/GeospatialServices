@@ -7,8 +7,8 @@ import rioxarray as rxr
 import geopandas as gpd
 from glob import glob
 import numpy as np
-from utils.geo import idw_mosaic
-from utils.dataset import compressRaster
+from utilities.geo import idw_mosaic
+from utilities.dataset import compressRaster
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)

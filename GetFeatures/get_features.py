@@ -1,12 +1,11 @@
-from utils.osm import main as _get_osm
-from utils.geo import transform_point, geojson_to_geodataframe
-from utils.cache import memoize_with_persistence
-
 import geopandas as gpd
 import pandas as pd
 import s2sphere
 import os
 
+from utilities.osm import main as _get_osm
+from utilities.geo import transform_point, geojson_to_geodataframe
+from utilities.cache import memoize_with_persistence
 
 def gpd_read_parquet(path):
     data = pd.read_parquet(path)

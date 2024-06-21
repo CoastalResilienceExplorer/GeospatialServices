@@ -1,28 +1,21 @@
-import rasterio
-from shapely.geometry import shape
-import geopandas as gpd
-import odc.geo.xr
-import xarray as xr
-import numpy as np
-from rasterio.sample import sample_gen
-
-import pyproj
-from shapely.geometry import Point
-from shapely.ops import transform, unary_union
-import shapely
-
-from tqdm import tqdm
-import xarray as xr
-import numpy as np
-from shapely.geometry import Polygon, Point, MultiLineString, LineString, MultiPolygon
-from scipy.spatial import cKDTree
 import copy
+import numpy as np
+import pyproj
+import rasterio
+import xarray as xr
 
-from utils.dataset import compressRaster
+import geopandas as gpd
+import shapely
+from shapely.geometry import LineString, MultiLineString, Point, shape
+from shapely.ops import transform, unary_union
+from tqdm import tqdm
+
+from cache import memoize_geospatial_with_persistence
+from dataset import compressRaster
 
 import logging
 
-def calculate_distances_to_edges(xr_obj, line_feature, boundary, op=np.max):
+def calculate_distances_to_edges(xr_obj, line_feature, boundary):
     """
     Calculate the distance from each pixel in an xarray object to the nearest polygon in a MultiPolygon,
     setting pixel values outside the polygons to NaN.
@@ -40,7 +33,6 @@ def calculate_distances_to_edges(xr_obj, line_feature, boundary, op=np.max):
 
     # Clip
     ds_clipped = ds.rio.clip([boundary], all_touched=True)
-    ds_clipped_dict = ds_clipped.to_dict()
 
     # Stack
     ds_stacked = ds_clipped.stack(pt=['x','y'])
@@ -151,7 +143,6 @@ def xr_vectorize(
             print(f"Exporting vector data to {output_path}")
         gdf.to_file(output_path)
 
-    gdf.sindex
     return gdf[gdf["attribute"] == 1.0]
 
 
@@ -321,4 +312,64 @@ def idw_mosaic(arr1, arr2, DEBUG=False):
     return to_return
     
 
-    return
+def transform_point(x, y, crs):
+    pt = Point(x, y)
+
+    init_crs = pyproj.CRS(crs)
+    wgs84 = pyproj.CRS('EPSG:4326')
+
+    project = pyproj.Transformer.from_crs(init_crs, wgs84, always_xy=True).transform
+    return transform(project, pt)
+
+# Convert GeoJSON to GeoDataFrame
+def geojson_to_geodataframe(geojson):
+    features = geojson["features"]
+    geometries = [shape(feature["geometry"]) for feature in features]
+    properties = [feature["properties"] for feature in features]
+
+    gdf = gpd.GeoDataFrame(properties, geometry=geometries)
+    return gdf
+
+def extract_z_values(ds, gdf, column_name, offset_column, offset_units) -> gpd.GeoDataFrame:
+    # note the extra 'z' dimension that our results will be organized along
+    da_x = xr.DataArray(gdf.geometry.x.values, dims=['z'])
+    da_y = xr.DataArray(gdf.geometry.y.values, dims=['z'])
+    results = ds.sel(x=da_x, y=da_y, method='nearest')
+    gdf[column_name] = results.values
+    gdf[column_name][gdf[column_name] == ds.rio.nodata] = 0
+    gdf[column_name][gdf[column_name].isna()] = 0
+    if offset_units == "ft":
+        offset = gdf[offset_column] * 0.3048
+    else:
+        offset = gdf[offset_column]
+    gdf[column_name] = gdf[column_name] - offset
+    return gdf
+
+def rescale_raster(ds):
+    print(ds.attrs)
+    ds = copy.deepcopy(ds)
+    ds = ds.where(ds != ds.attrs['_FillValue'], 0)
+    # rxr doesn't respect integer scaling when running selects, so we need to do it manually.
+    # Might be nice to wrap this into our own rxr import
+    ds = ds * ds.attrs['scale_factor'] + ds.attrs['add_offset']
+    return ds
+
+def clip_dataarray_by_geometries(ds, gdf):
+    """
+    Clips a rioxarray DataArray by each geometry in a GeoDataFrame.
+
+    Parameters:
+    dataarray (rioxarray.DataArray): The input dataarray to be clipped.
+    geodf (geopandas.GeoDataFrame): The geodataframe containing the geometries for clipping.
+
+    Returns:
+    list: A list of clipped rioxarray DataArrays.
+    """
+    clipped_arrays = []
+
+    for idx, row in gdf.iterrows():
+        geometry = row['geometry']
+        clipped_array = ds.rio.clip([geometry], ds.rio.crs, drop=True)
+        clipped_arrays.append(clipped_array)
+
+    return clipped_arrays

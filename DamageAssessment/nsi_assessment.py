@@ -1,6 +1,6 @@
 from get_features import get_features_unpartitioned
-from utils.geo import extract_z_values
-from utils.cache import memoize_with_persistence
+from utilities.geo import extract_z_values
+from utilities.cache import memoize_with_persistence
 import pandas as pd
 import copy
 from collections import OrderedDict

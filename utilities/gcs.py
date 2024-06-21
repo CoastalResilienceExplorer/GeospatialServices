@@ -1,8 +1,22 @@
 from google.cloud import storage
 import logging
 
-logging.basicConfig()
-logging.root.setLevel(logging.INFO)
+def delete_blob(bucket_name, blob_name):
+    """Deletes a blob from the bucket."""
+    # bucket_name = "your-bucket-name"
+    # blob_name = "your-object-name"
+
+    storage_client = storage.Client(project="global-mangroves")
+
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(blob_name)
+    existing_blobs = storage_client.list_blobs(bucket_name)
+    for existing_blob in existing_blobs:
+        # print(existing_blob)
+        if blob_name == existing_blob:
+            print("Deleting")
+            blob.delete()
+            print(f"Blob {blob_name} deleted.")
 
 
 def download_blob(bucket_name, source_blob_name, destination_file_name):
@@ -16,7 +30,7 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     # The path to which the file should be downloaded
     # destination_file_name = "local/path/to/file"
 
-    storage_client = storage.Client()
+    storage_client = storage.Client(project="global-mangroves")
 
     bucket = storage_client.bucket(bucket_name)
 
@@ -28,8 +42,10 @@ def download_blob(bucket_name, source_blob_name, destination_file_name):
     blob.download_to_filename(destination_file_name)
 
     logging.info(
-        "Downloaded storage object %s from bucket %s to local file %s.", 
-        source_blob_name, bucket_name, destination_file_name
+        "Downloaded storage object %s from bucket %s to local file %s.",
+        source_blob_name,
+        bucket_name,
+        destination_file_name,
     )
 
 
@@ -44,10 +60,12 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
 
     logging.info(
         "Uploading file %s to bucket %s as %s.",
-        source_file_name, bucket_name, destination_blob_name
+        source_file_name,
+        bucket_name,
+        destination_blob_name,
     )
 
-    storage_client = storage.Client(project='global-mangroves')
+    storage_client = storage.Client(project="global-mangroves")
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(destination_blob_name)
 
@@ -64,19 +82,23 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
         # if_generation_match=generation_match_precondition
     )
 
-    logging.info(
-        "File %s uploaded to %s.",
-        source_file_name, destination_blob_name
-    )
+    logging.info("File %s uploaded to %s.", source_file_name, destination_blob_name)
 
-def list_blobs(bucket_name, prefix=None):
+
+def list_blobs(bucket_name):
     """Lists all the blobs in the bucket."""
     # bucket_name = "your-bucket-name"
 
     storage_client = storage.Client(project="global-mangroves")
 
     # Note: Client.list_blobs requires at least package version 1.17.0.
-    blobs = storage_client.list_blobs(bucket_name, prefix=prefix)
+    blobs = storage_client.list_blobs(bucket_name)
 
     # Note: The call returns a response only when the iterator is consumed.
     return [blob.name for blob in blobs]
+
+
+def compress_file(input_filepath, output_filepath):
+    with open(input_filepath, 'rb') as f_in:
+        with gzip.open(output_filepath, 'wb') as f_out:
+            f_out.writelines(f_in)

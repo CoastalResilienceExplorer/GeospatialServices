@@ -7,8 +7,8 @@ from cloudevents.http import from_http
 from flask import Flask, request
 import geopandas as gpd
 import pandas as pd
-from utils.gcs import download_blob, delete_blob
-from utils.geoparquet_utils import is_polygon, partition_gdf
+from utilities.gcs import download_blob, delete_blob
+from utilities.geoparquet_utils import is_polygon, partition_gdf
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
