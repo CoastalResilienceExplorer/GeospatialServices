@@ -144,3 +144,10 @@ def maskEdge(ds):
                     (ds.coords[ds.dims[1]] == ds.coords[ds.dims[1]].values[0]) | \
                     (ds.coords[ds.dims[1]] == ds.coords[ds.dims[1]].values[width - 1])
     return ds * (edge_mask.astype(int) * -1 + 1)
+
+def open_as_ds(path, suffix=".tif"):
+    data = glob(os.path.join(path, f"*{suffix}"))
+    data = [
+        rxr.open_rasterio(i).isel(band=0).rename(i.split('/')[-1].split('.')[0]) for i in data
+    ]
+    return xr.merge(data)

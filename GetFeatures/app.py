@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import logging
 from flask import Flask, request
@@ -9,10 +10,10 @@ import copy, io
 
 # A Python program to demonstrate working of OrderedDict
 from collections import OrderedDict
-import numpy as np
-from utils.api_requests import data_to_parameters_factory, response_to_gpkg
-from utils.geo import extract_z_values
-from utils.geoparquet_utils import write_partitioned_gdf
+
+from utilities.api_requests import data_to_parameters_factory, response_to_gpkg
+from utilities.geo import extract_z_values
+from utilities.geoparquet_utils import write_partitioned_gdf
 
 TMP_FOLDER = '/tmp'
 

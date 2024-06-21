@@ -4,7 +4,7 @@ from flask import Flask, request
 import flask
 import geopandas as gpd
 import subprocess
-from utils.gcs import list_blobs, upload_blob, download_blob
+from utilities.gcs import list_blobs, upload_blob, download_blob
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)

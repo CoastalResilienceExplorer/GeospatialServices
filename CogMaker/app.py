@@ -10,9 +10,9 @@ import requests
 import threading
 import rioxarray as rxr
 import xarray as xr
-from utils.datastore import add_entity, get_managed_assets
-from utils.gcs import download_blob, upload_blob, list_blobs
-from utils.dataset import compressRaster
+from utilities.datastore import add_entity, get_managed_assets
+from utilities.gcs import download_blob, upload_blob, list_blobs
+from utilities.dataset import compressRaster
 
 import json
 import zarr

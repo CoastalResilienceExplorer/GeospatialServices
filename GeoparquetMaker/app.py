@@ -1,9 +1,9 @@
+import io
 import os
 import logging
 from flask import Flask, request
 import geopandas as gpd
-import io
-from utils.geoparquet_utils import partition_gdf, is_polygon, write_partitioned_gdf
+from utilities.geoparquet_utils import partition_gdf, is_polygon, write_partitioned_gdf
 
 
 logging.basicConfig()

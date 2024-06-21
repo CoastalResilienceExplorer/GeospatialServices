@@ -7,10 +7,9 @@ import rioxarray as rxr
 import copy, io
 import uuid
 
-from utils.api_requests import response_to_tiff_factory, response_to_gpkg_factory, nodata_to_zero
-from utils.dataset import makeSafe_rio, compressRaster, open_as_ds
-from utils.gcs import upload_blob, compress_file
-from damage_assessment import main as damage_assessment, AEV, exposure, apply_dollar_weights
+from utilities.api_requests import response_to_tiff_factory, response_to_gpkg_factory, nodata_to_zero
+from utilities.dataset import makeSafe_rio, compressRaster, open_as_ds
+from damage_assessment import main as damage_assessment, AEV, exposure
 from population_assessment import main as population_assessment
 from nsi_assessment import get_nsi, get_nsi_damages
 import gc

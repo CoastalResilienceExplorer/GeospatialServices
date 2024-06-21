@@ -6,9 +6,11 @@ import geopandas as gpd
 import uuid, os
 import xarray as xr
 import numpy as np
-from utils.gcs import upload_blob
-from utils.dataset import compressRaster, maskEdge
-from utils.geoparquet_utils import write_partitioned_gdf
+
+from gcs import upload_blob
+from dataset import compressRaster, maskEdge
+from geoparquet_utils import write_partitioned_gdf
+
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
@@ -18,6 +20,7 @@ GCS_BASE_RASTER=os.environ['OUTPUT_BUCKET_RASTER']
 GCS_BASE_VECTOR=os.environ['OUTPUT_BUCKET_VECTOR']
 MNT_BASE=os.environ['MNT_BASE']
 
+
 def data_to_parameters_factory(app):
     def data_to_parameters(func):
         with app.test_request_context():
@@ -26,10 +29,27 @@ def data_to_parameters_factory(app):
                 """A wrapper function"""
                 # Extend some capabilities of func
                 data = request.get_json()
+                logging.info(data)
                 to_return = func(**data)
                 return to_return
             return wrapper
     return data_to_parameters
+
+
+def response_to_gpkg(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        """A wrapper function"""
+        xid = str(uuid.uuid1())
+        # Extend some capabilities of func
+        gdf_to_return = func(*args, **kwargs)
+        logging.info(gdf_to_return)
+        assert isinstance(gdf_to_return, gpd.GeoDataFrame)
+        fname=f'{xid}.gpkg'
+        gdf_to_return.to_file(os.path.join(TMP_FOLDER, fname))
+        return flask.send_from_directory(TMP_FOLDER, fname)
+
+    return wrapper
 
 
 def response_to_gpkg_factory(app):
