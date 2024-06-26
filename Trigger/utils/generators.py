@@ -14,6 +14,7 @@ logging.basicConfig()
 logging.root.setLevel(logging.INFO)
 
 def post(url, data, files, write_content=False):
+    logging.info(url)
     with requests.post(url, data=data, files=files) as response:
         if write_content:
             with open(write_content, 'wb') as f:
@@ -40,6 +41,7 @@ def dummy_return_true():
 async def async_runner(generator, id, task, pass_assertion, tries=3, workers=10, incremental_retry=True):
 
     data = [i for i in generator()]
+    logging.info(data)
     idxs = [False for i in data]
     r.hset(id, mapping={task: "STARTED"})
     async def do_work(data):
@@ -58,11 +60,8 @@ async def async_runner(generator, id, task, pass_assertion, tries=3, workers=10,
             time.sleep(2)
         
         data = [i for idx, i in enumerate(data) if not idxs[idx]]
-        logging.info(data)
         responses = await do_work(data)
-        logging.info(responses)
         idxs = [idx == 200 for i, idx in enumerate(responses)]
-        logging.info(idxs)
         if pass_assertion(idxs):
             r.hset(id, mapping={task: "COMPLETE"})
             break

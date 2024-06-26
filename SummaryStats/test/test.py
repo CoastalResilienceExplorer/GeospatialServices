@@ -14,7 +14,8 @@ def test_summary_stats():
     data = {
         'project': 'NBS_ADAPTS',
         'key': 'DOM_merged_test',
-        'data_type': 'flooding'
+        'data_type': 'population'
     }
+    logging.info(f'{HOST}/summary_stats/')
     x = requests.post(f'{HOST}/summary_stats/', data=data, files=files)
     logging.info(x)

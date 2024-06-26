@@ -34,13 +34,13 @@ app = Flask(__name__)
 
 CLEAN_SLATE = True
 TASKS = [
-    # "SUBMITTED",
-    # "COG",
-    # "DAMAGES",
-    # "EXPOSURE",
-    # "POPULATION",
-    # "AEV_DAMAGES",
-    # "AEV_POPULATION",
+    "SUBMITTED",
+    "COG",
+    "DAMAGES",
+    "EXPOSURE",
+    "POPULATION",
+    "AEV_DAMAGES",
+    "AEV_POPULATION",
     "APPLY_DOLLAR_VALUES",
     "ZARR2PT",
     "PMTILES",
@@ -117,7 +117,7 @@ async def trigger():
         "COG": {
             "runner": async_runner,
             "args": (cog_generator(paths), SUBMISSION_ID, "COG", assert_done),
-            "kwargs": {"tries": 2, "workers": 32}
+            "kwargs": {"tries": 4, "workers": 32}
         },
 
         "DAMAGES": {
@@ -147,19 +147,19 @@ async def trigger():
         "AEV_DAMAGES": {
             "runner": async_runner,
             "args": (aev_generator(request.form['template'], 'AEV-Econ', request.form['rps'], paths, 'damages'), SUBMISSION_ID, "AEV_DAMAGES", assert_done),
-            "kwargs": {"tries": 6, "workers": 2}
+            "kwargs": {"tries": 8, "workers": 1}
         },
 
         "AEV_POPULATION": {
             "runner": async_runner,
             "args": (aev_generator(request.form['template'], 'AEV-Pop', request.form['rps'], paths, 'population'), SUBMISSION_ID, "AEV_POPULATION", assert_done),
-            "kwargs": {"tries": 6, "workers": 2}
+            "kwargs": {"tries": 8, "workers": 1}
         },
         
         "APPLY_DOLLAR_VALUES": {
             "runner": async_runner,
             "args": (apply_dollar_weights_generator(paths, 'damages'), SUBMISSION_ID, "APPLY_DOLLAR_VALUES", assert_done),
-            "kwargs": {"tries": 1, "workers": 2}
+            "kwargs": {"tries": 4, "workers": 1}
         },
 
         "ZARR2PT": {
@@ -193,8 +193,6 @@ async def trigger():
 
     return ("Complete", 200)
 
-
-@app.get('/mosaic')
 
 
 @app.get('/backfill')

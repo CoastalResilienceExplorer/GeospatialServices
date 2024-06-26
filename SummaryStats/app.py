@@ -71,7 +71,7 @@ def api_summary_stats():
     gdf = gdf.to_crs(CRS)
     stats = summary_stats(gdf, ds)
     stats.to_parquet(os.path.join(output_path, f'{output_name}.parquet'))
-    stats.to_file(f'{output_name}.gpkg')
+    stats.to_file(os.path.join(output_path, f'{output_name}.gpkg'))
 
     return ("complete", 200)
 
