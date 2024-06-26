@@ -11,6 +11,7 @@ from utils.api_requests import response_to_tiff_factory, response_to_gpkg_factor
 from utils.dataset import makeSafe_rio, compressRaster, open_as_ds
 from utils.get_features import get_features_with_z_values
 from damage_assessment import main as damage_assessment, AEV, exposure, apply_dollar_weights
+from nsi_assessment import get_nsi_damages_generic
 from population_assessment import main as population_assessment
 from nsi_assessment import get_nsi, get_nsi_damages
 import gc
@@ -47,7 +48,6 @@ def api_damage_assessment():
 @response_to_tiff_factory(app)
 @nodata_to_zero
 def api_exposure():
-    logging.info(request.files['flooding'])
     flooding = rxr.open_rasterio(
         request.form["flooding"]
     ).isel(band=0)
@@ -119,9 +119,14 @@ def api_nsi_assessment_generic():
     flooding = rxr.open_rasterio(
         io.BytesIO(request.files['data'].read())
     ).isel(band=0)
-    x = makeSafe_rio(flooding)
-    damages = get_features_with_z_values(x, **request.form)
-    logging.info(damages)
+    flooding = makeSafe_rio(flooding)
+    flooddepths = get_features_with_z_values(flooding, **request.form)
+    damages = get_nsi_damages_generic(flooddepths)
+    damages.drop(columns=['polygon'], inplace=True)
+    outdir = os.path.join('/app/data/USGS_USVI')
+    if not os.path.exists(outdir):  
+        os.makedirs(outdir)
+    damages.to_file(os.path.join(outdir, f'{request.files["data"].filename.split(".")[0]}.gpkg'))
     return damages
 
 

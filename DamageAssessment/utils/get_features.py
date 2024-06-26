@@ -1,6 +1,7 @@
 from utils.geo import transform_point, geojson_to_geodataframe, extract_z_values
 from utils.cache import memoize_with_persistence
 from utils.osm import main as _get_osm
+from utils.gcs import list_blobs
 
 import geopandas as gpd
 import pandas as pd
@@ -31,7 +32,16 @@ def get_covering(lower_left, upper_right):
 
 
 def get_relevant_partitions(covering, features):
-    partition_ids = [int(i.split(".")[0]) for i in os.listdir(features)]
+    if features.startswith("gs://"):
+        features = features[5:]
+        bucket = features.split('/')[0]
+        logging.info(bucket)
+        features = '/'.join(features.split('/')[1:])
+        logging.info(features)
+        logging.info(list_blobs(bucket, features))
+        partition_ids = [int(i.split("/")[-1].split(".")[0]) for i in list_blobs(bucket, features)]
+    else:
+        partition_ids = [int(i.split(".")[0]) for i in os.listdir(features)]
     buff = []
     for p in partition_ids:
         p = s2sphere.CellId(p)
@@ -75,11 +85,11 @@ def get_features_unpartitioned(features_file, left, bottom, right, top, CRS):
 
 
 def get_open_buildings(left, bottom, right, top, ISO3, crs):
-    features_file=f"supporting-data2/google-microsoft-open-buildings.parquet/country_iso={ISO3}/"
+    features_file=f"gs://supporting-data2/google-microsoft-open-buildings.parquet/country_iso={ISO3}/"
     lower_left = transform_point(left, bottom, crs)
     upper_right = transform_point(right, top, crs)
     buildings = get_bbox_filtered_gdf(
-        os.path.join(os.environ["GCS_MNT_BASE"], features_file),
+        features_file,
         lower_left,
         upper_right,
     )
@@ -117,13 +127,14 @@ def get_features_with_z_values(ds, id="flooding", features_from="OPEN_BUILDINGS"
         logging.info(ds.rio.crs)
         gdf = get_open_buildings(left=left, bottom=bottom, right=right, top=top, ISO3=ISO3, crs=ds.rio.crs)
         gdf_points = copy.deepcopy(gdf)
-        logging.info(gdf_points)
         gdf_points['geometry'] = gdf_points['geometry'].centroid
+        gdf_points = gdf_points.set_crs("EPSG:4326").to_crs(ds.rio.crs)
+        
+        logging.info(gdf_points)
         gdf_points = extract_z_values(ds=ds, gdf=gdf_points, column_name=id)
-        gdf[id] = gdf_points[id]
+        gdf_points["polygon"] = gdf["geometry"]
         # gdf[id][gdf[id] == ds.rio.nodata] = np.nan
-        return gdf
-    
+        return gdf_points
     else:
         return ("Only OSM currently supported", 404)
 
