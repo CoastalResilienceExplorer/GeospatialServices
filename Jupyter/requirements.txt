@@ -1,0 +1,13 @@
+jupyter
+numpy
+pandas
+matplotlib
+seaborn
+geopandas
+shapely
+fiona
+pyproj
+rasterio
+folium
+pyarrow
+contextily
