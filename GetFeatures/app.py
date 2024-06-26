@@ -135,6 +135,18 @@ def api_extract_z_values():
 
         return gdf
     
+    if features_from == "OPEN_BUILDINGS":
+        b = z.rio.bounds()
+        left, bottom, right, top = b
+        ISO3 = request.form["ISO3"]
+        gdf = get_open_buildings(left=left, bottom=bottom, right=right, top=top, ISO3=ISO3)
+        gdf_points = copy.deepcopy(gdf)
+        gdf_points['geometry'] = gdf_points['geometry'].centroid
+        gdf_points = extract_z_values(ds=z, gdf=gdf_points, column_name=id)
+        gdf[id] = gdf_points[id]
+        gdf[id][gdf[id] == z.rio.nodata] = np.nan
+        return gdf
+    
     else:
         return ("Only OSM currently supported", 404)
 

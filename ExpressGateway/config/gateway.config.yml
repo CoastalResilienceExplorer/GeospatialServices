@@ -9,12 +9,19 @@ apiEndpoints:
     paths:
     - '/build_COG/'
     - '/build_zarr/'
+    - '/zarr_to_netcdf/'
+    - '/zarr_to_tiff/'
     - '/'
   damage:
     host: '*'
     paths:
     - '/damage/dlr_guf/'
-    - '/damage/dlr_guf/aev/'
+    - '/damage/dlr_guf/exposure'
+    - '/damage/dlr_guf/exposure'
+    - '/damage/nsi/generic'
+    - '/damage/apply_dollar_weights'
+    - '/population/GHSL_2020_100m'
+    - '/aev/'
   cog2pt:
     host: '*'
     paths:
@@ -24,15 +31,39 @@ apiEndpoints:
     paths:
     - '/create_pmtiles/'
     - '/get_tilesets/'
+  trigger:
+    host: '*'
+    paths:
+    - '/trigger/'
+    - '/get_data/'
+    - '/get_downloads/'
+    - '/get_tasks/'
+    - '/status/'
+    - '/backfill/'
+    - '/pipeline/'
+  mosaic:
+    host: '*'
+    paths:
+    - '/mosaic/'
+  summarystats:
+    host: '*'
+    paths:
+    - '/summary_stats/'
 serviceEndpoints:
+  mosaic:
+    url: 'http://mosaic:8080'
+  trigger:
+    url: 'http://trigger:8080'
   geoparquet2pmtiles:
-    url: 'http://molokai.pbsci.ucsc.edu:3004'
+    url: 'http://geoparquet2pmtiles:8080'
   cogmaker:
-    url: 'http://molokai.pbsci.ucsc.edu:3002'
+    url: 'http://cogmaker:8080'
   cog2pt:
-    url: 'http://molokai.pbsci.ucsc.edu:3003'
+    url: 'http://cog2pt:8080'
   damage:
-    url: 'http://molokai.pbsci.ucsc.edu:3001'
+    url: 'http://damage_assessment:8080'
+  summarystats:
+    url: 'http://summarystats:8080'
 policies:
   - basic-auth
   - cors
@@ -82,4 +113,34 @@ pipelines:
       - proxy:
           - action:
               serviceEndpoint: geoparquet2pmtiles
+              changeOrigin: true
+  trigger:
+    apiEndpoints:
+      - trigger
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: trigger
+              changeOrigin: true
+  mosaic:
+    apiEndpoints:
+      - mosaic
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: mosaic
+              changeOrigin: true
+  summarystats:
+    apiEndpoints:
+      - summarystats
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: summarystats
               changeOrigin: true

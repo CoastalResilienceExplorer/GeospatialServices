@@ -3,6 +3,7 @@ from requests_toolbelt import MultipartEncoder
 import time
 
 
+HOST=os.getenv('HOST')
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trigger remote damages or population")
     
@@ -11,9 +12,10 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--project', type=str, help='Project name, ie NBS ADAPTS')
     parser.add_argument('-t', '--template', type=str, help='Formatter to use for Annual Expected Value')
     parser.add_argument('-r', '--rps', type=str, help='Return Periods')
+    parser.add_argument('-o', '--output', type=str, required=False)
     args = parser.parse_args()
 
-    ENDPOINT = f"{os.getenv('HOST')}/trigger"
+    ENDPOINT = f"{HOST}/trigger"
 
     files = {'data': open(args.data, 'rb')}
     response = requests.post(
@@ -21,6 +23,10 @@ if __name__ == "__main__":
             'key': args.key,
             'project': args.project,
             'template': args.template,
-            'rps': args.rps
+            'rps': args.rps,
+            'output': args.output != None
         }, files=files
     )
+    if (args.output):
+        with open(args.output, 'wb') as f:
+            f.write(response.content)

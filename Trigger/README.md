@@ -1,7 +1,7 @@
 ## Triggering a Full Run
 
 ```
-export HOST=http://molokai.pbsci.ucsc.edu:3000
+export HOST=https://molokai.pbsci.ucsc.edu:3000
 python3 tools/trigger.py \
     --data ../../TestData/Dom01.zip \
     --key Dom01 \

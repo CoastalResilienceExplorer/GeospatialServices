@@ -17,3 +17,5 @@ fsspec
 gcsfs
 uvicorn[standard]
 gunicorn
+
+s2sphere

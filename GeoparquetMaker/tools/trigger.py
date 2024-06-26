@@ -63,10 +63,10 @@ if __name__ == "__main__":
             }
         )
         print(m)
-        response = requests.get(
+        response = requests.post(
             ENDPOINT, 
-            # data=m,
-            # headers={'Content-Type': m.content_type}
+            data=m,
+            headers={'Content-Type': m.content_type}
         )
         print(response)
 
