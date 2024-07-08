@@ -121,9 +121,13 @@ def get_nsi_damages(ds, gdf):
 
 
 def get_nsi_damages_generic(gdf_points, id="damages", flooding_column="flooding", depth_regex=r'^m\d*\.?\d*$', divide_by_100=True):
-    regions = gpd.read_file('./damage_data/vulnerability_curves/VI_Tract_weighted_vulnerability_curves_and_values.gpkg')
+    regions = gpd.read_file('./damage_data/vulnerability_curves/VI_Block_weighted_vulnerability_curves_and_values.gpkg')
     regions.to_crs(gdf_points.crs, inplace=True)
-    gdf_points = gpd.sjoin(gdf_points, regions, how="left", op='intersects')
+    
+    print(gdf_points.shape)
+    gdf_points = gpd.sjoin_nearest(gdf_points, regions, how="left")
+    print(gdf_points.shape)
+    # gdf_points = gpd.sjoin(gdf_points, regions, how="left", op='intersects')
     
     depth_cols = [i for i in regions.columns if re.search(depth_regex, i)]
     logging.info(depth_cols)

@@ -19,3 +19,5 @@ uvicorn[standard]
 gunicorn
 
 s2sphere
+
+dask

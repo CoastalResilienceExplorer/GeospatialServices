@@ -119,12 +119,15 @@ def exposure(flooding: xr.Dataset | xr.DataArray):
         return exposure
 
 
-def AEV(ds, rps, keys, id, year_of_zero_damage=2.):
+def AEV(ds, rps, keys, id, year_of_zero_damage=1.):
+    logging.info(keys)
+    logging.info(ds[keys[0]].shape)
     values = np.nan_to_num(
         np.array([
             ds[k].to_numpy() for k in keys
         ])
     )
+    logging.info(values.shape)
 
     rps      = np.array(rps)
     values  = np.array(values)
@@ -157,6 +160,7 @@ def AEV(ds, rps, keys, id, year_of_zero_damage=2.):
         aev,
         keep_attrs=True
     ).rename(id)
+    logging.info(to_return.shape)
     return to_return
 
 
@@ -168,6 +172,7 @@ def apply_dollar_weights(ds):
     crosswalk = pd.read_csv(CROSSWALK)
     maxdamage = maxdamage.merge(crosswalk, left_on='Country', right_on="Econ",  how='left', suffixes=('', '_new'))
     maxdamage['Country'] = maxdamage['Boundaries'].combine_first(maxdamage['Country'])
+    logging.info(maxdamage)
     
     gadm = gpd.read_parquet(GADM).set_crs(4326, allow_override=True)
     ds = ds.rio.reproject("EPSG:4326")
@@ -178,6 +183,7 @@ def apply_dollar_weights(ds):
     
     # Clip the GeoDataFrame using the .cx accessor
     gadm = gadm.cx[minx:maxx, miny:maxy]
+    logging.info(gadm)
     masks = clip_dataarray_by_geometries(ds, gadm)
     logging.info(masks)
     for idx, row in gadm.iterrows():

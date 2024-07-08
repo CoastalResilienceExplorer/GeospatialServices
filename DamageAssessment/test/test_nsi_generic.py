@@ -2,7 +2,7 @@ import requests, os
 
 BASEDIR = "/users/chlowrie/TestData/USGS_USVI/"
 
-URL = "http://localhost:3000/damage/nsi/generic/"
+URL = "http://localhost:4000/damage/nsi/generic/"
 
 for i in os.listdir(BASEDIR):
     files = {"data": open(os.path.join(BASEDIR, i), "rb")}

@@ -9,6 +9,9 @@ import math
 from glob import glob
 import logging
 
+import dask.array as da
+import gc
+
 
 TMP_FOLDER='/tmp'
 
@@ -148,7 +151,21 @@ def maskEdge(ds):
 
 def open_as_ds(path, suffix=".tif"):
     data = glob(os.path.join(path, f"*{suffix}"))
-    data = [
-        rxr.open_rasterio(i).isel(band=0).rename(i.split('/')[-1].split('.')[0]) for i in data
-    ]
-    return xr.merge(data)
+    logging.info(data)
+    buff = []
+    for i in data:
+        logging.info(i)
+        x = rxr.open_rasterio(i).isel(band=0).rename(i.split('/')[-1].split('.')[0])
+        logging.info(x)
+        logging.info(x.shape)
+        buff.append(x)
+        gc.collect()
+    
+    buff2 = [buff[0]]
+    for b in buff[1:]:
+        b = b.reindex_like(buff[0], method="nearest")
+        buff2.append(b)
+    
+    to_return = xr.merge(buff2, join='exact')
+    logging.info(to_return)
+    return to_return

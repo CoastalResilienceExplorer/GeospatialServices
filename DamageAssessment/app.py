@@ -58,16 +58,16 @@ def api_exposure():
 
 @app.route('/aev/', methods=["POST"])
 def api_damage_assessment_aev():
-    ds = open_as_ds(request.form['damages'])
+    logging.info(request.form)
+    ds = open_as_ds(request.form['damages'], request.form['formatter'].format(rp="*") + ".tif")
     rps = [int(i) for i in request.form['rps'].split(',')]
     formatter = request.form['formatter']
     logging.info(request.form['formatter'])
     id = request.form['id']
 
     damages = AEV(ds, rps, [formatter.format(rp=rp) for rp in rps], id)
-    # damages.rio.write_crs(ds.rio.crs, inplace=True)
-    # damages.rio.write_nodata(0, inplace=True)
     damages = damages.assign_attrs(**ds.attrs)
+    logging.info(damages)
     damages.rio.write_crs(ds.rio.crs, inplace=True)
     compressRaster(damages, os.path.join(request.form['output'], f'{id}.tif'))
     return ("complete", 200)
@@ -123,7 +123,7 @@ def api_nsi_assessment_generic():
     flooddepths = get_features_with_z_values(flooding, **request.form)
     damages = get_nsi_damages_generic(flooddepths)
     damages.drop(columns=['polygon'], inplace=True)
-    outdir = os.path.join('/app/data/USGS_USVI')
+    outdir = os.path.join('/app/data/USGS_USVI/block')
     if not os.path.exists(outdir):  
         os.makedirs(outdir)
     damages.to_file(os.path.join(outdir, f'{request.files["data"].filename.split(".")[0]}.gpkg'))
