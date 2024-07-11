@@ -1,12 +1,5 @@
 http:
   port: 8080
-# https:
-#   port: 8080
-#   hostname: localhost
-#   tls:
-#     "molokai.pbsci.ucsc.edu":
-#         key: /app/ssl/molokai.pbsci.ucsc.edu.key
-#         cert: /app/ssl/molokai.pbsci.ucsc.edu_cer.cer
 admin:
   port: 9876
   host: localhost
@@ -23,9 +16,11 @@ apiEndpoints:
     host: '*'
     paths:
     - '/damage/dlr_guf/'
-    - '/damage/dlr_guf/exposure/'
-    - '/damage/nsi/generic/'
-    - '/population/GHSL_2020_100m/'
+    - '/damage/dlr_guf/exposure'
+    - '/damage/dlr_guf/exposure'
+    - '/damage/nsi/generic'
+    - '/damage/apply_dollar_weights'
+    - '/population/GHSL_2020_100m'
     - '/aev/'
   cog2pt:
     host: '*'
@@ -50,19 +45,11 @@ apiEndpoints:
     host: '*'
     paths:
     - '/mosaic/'
+  summarystats:
+    host: '*'
+    paths:
+    - '/summary_stats/'
 serviceEndpoints:
-  # mosaic:
-  #   url: 'http://molokai.pbsci.ucsc.edu:3006'
-  # trigger:
-  #   url: 'http://molokai.pbsci.ucsc.edu:3005'
-  # geoparquet2pmtiles:
-  #   url: 'http://molokai.pbsci.ucsc.edu:3004'
-  # cogmaker:
-  #   url: 'http://molokai.pbsci.ucsc.edu:3002'
-  # cog2pt:
-  #   url: 'http://molokai.pbsci.ucsc.edu:3003'
-  # damage:
-  #   url: 'http://molokai.pbsci.ucsc.edu:3001'
   mosaic:
     url: 'http://mosaic:8080'
   trigger:
@@ -74,7 +61,9 @@ serviceEndpoints:
   cog2pt:
     url: 'http://cog2pt:8080'
   damage:
-    url: 'http://damage:8080'
+    url: 'http://damage_assessment:8080'
+  summarystats:
+    url: 'http://summarystats:8080'
 policies:
   - basic-auth
   - cors
@@ -104,7 +93,7 @@ pipelines:
       - proxy:
           - action:
               serviceEndpoint: cogmaker
-              # changeOrigin: true
+              changeOrigin: true
   cog2pt:
     apiEndpoints:
       - cog2pt
@@ -145,4 +134,13 @@ pipelines:
           - action:
               serviceEndpoint: mosaic
               changeOrigin: true
-
+  summarystats:
+    apiEndpoints:
+      - summarystats
+    policies:
+    # Uncomment `key-auth:` when instructed to in the Getting Started guide.
+    # - key-auth:
+      - proxy:
+          - action:
+              serviceEndpoint: summarystats
+              changeOrigin: true

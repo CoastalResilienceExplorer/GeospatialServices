@@ -4,7 +4,6 @@ import time
 
 
 HOST=os.getenv('HOST')
-HOST="https://molokai.pbsci.ucsc.edu:443"
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Trigger remote damages or population")
     

@@ -8,9 +8,9 @@ import copy, io
 import uuid
 
 from utils.api_requests import response_to_tiff_factory, response_to_gpkg_factory, nodata_to_zero
-from utils.dataset import makeSafe_rio, compressRaster
+from utils.dataset import makeSafe_rio, compressRaster, open_as_ds
 from utils.get_features import get_features_with_z_values
-from damage_assessment import main as damage_assessment, AEV, exposure
+from damage_assessment import main as damage_assessment, AEV, exposure, apply_dollar_weights
 from population_assessment import main as population_assessment
 from nsi_assessment import get_nsi, get_nsi_damages
 import gc
@@ -49,7 +49,7 @@ def api_damage_assessment():
 def api_exposure():
     logging.info(request.files['flooding'])
     flooding = rxr.open_rasterio(
-        io.BytesIO(request.files['flooding'].read())
+        request.form["flooding"]
     ).isel(band=0)
     x = makeSafe_rio(flooding)
     e = exposure(x)
@@ -58,18 +58,18 @@ def api_exposure():
 
 @app.route('/aev/', methods=["POST"])
 def api_damage_assessment_aev():
-    ds = xr.open_zarr(request.form['damages'])
+    ds = open_as_ds(request.form['damages'])
     rps = [int(i) for i in request.form['rps'].split(',')]
     formatter = request.form['formatter']
+    logging.info(request.form['formatter'])
     id = request.form['id']
 
     damages = AEV(ds, rps, [formatter.format(rp=rp) for rp in rps], id)
     # damages.rio.write_crs(ds.rio.crs, inplace=True)
     # damages.rio.write_nodata(0, inplace=True)
     damages = damages.assign_attrs(**ds.attrs)
-    print(damages)
-    damages.to_zarr(request.form['output'], mode='a')
-    zarr.consolidate_metadata(request.form['output'])
+    damages.rio.write_crs(ds.rio.crs, inplace=True)
+    compressRaster(damages, os.path.join(request.form['output'], f'{id}.tif'))
     return ("complete", 200)
     
 
@@ -79,7 +79,7 @@ def api_damage_assessment_aev():
 @nodata_to_zero
 def api_population_assessment():
     flooding = rxr.open_rasterio(
-        io.BytesIO(request.files['flooding'].read())
+        request.form["flooding"]
     ).isel(band=0)
     x = makeSafe_rio(flooding)
     p = population_assessment(x, float(request.form['threshold']))
@@ -101,6 +101,15 @@ def api_nsi_assessment():
     nsi = get_nsi(left=left, bottom=bottom, right=right, top=top, state=request.form['nsi'], crs=flooding.rio.crs)
     damages = get_nsi_damages(flooding, nsi)
     return damages
+
+
+@app.route('/damage/apply_dollar_weights/', methods=["POST"])
+def api_apply_dollar_weights():
+    data = request.get_json()
+    ds = rxr.open_rasterio(data['input'])
+    ds = apply_dollar_weights(ds)
+    compressRaster(ds, data['output'])
+    return ("completed", 200 )
 
 
 @app.route('/damage/nsi/generic/', methods=["POST"])

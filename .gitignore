@@ -2,4 +2,5 @@ __pycache__
 .terraform
 .DS_Store
 .env
+.molokai.env
 # .*.env

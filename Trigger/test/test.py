@@ -55,5 +55,29 @@ def test_mosaic():
     logging.info(response)
 
 
-test_mosaic()
+def test_summarystats():
+    PROJECT="NBS_ADAPTS"
+    KEY="DOM_merged_test"
+    GEOGS = '/users/chlowrie/TestData/dom_subunits.gpkg'
+    files = {
+        "geographies": open(GEOGS, 'rb')
+    }
+    args = json.dumps({
+        "SUMMARYSTATS": {
+            "files": ["geographies"]
+        }
+    })
+    response = requests.post(
+        ENDPOINT, data={
+            'project': PROJECT,
+            'key': KEY,
+            'args': args,
+            'tasks': "SUMMARYSTATS",
+        }, files=files
+    )
+    logging.info(response)
+
+
+test_summarystats()
+# test_mosaic()
 # test_ingest()
