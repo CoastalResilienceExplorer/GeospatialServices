@@ -3,15 +3,17 @@ services:
     build:
       context: ./DamageAssessment
     volumes:
-      - ./DamageAssessment:/app
+      # - ./DamageAssessment:/app
       - ${GCP_CREDS}:/root/.config/gcloud
       - ${DATA_FOLDER}:/app/data
-    ports:
-      - "3001:8080"
+    expose:
+      - "8080"
+    # ports:
+    #   - "3001:8080"
     environment:
       OUTPUT_BUCKET_RASTER: ${OUTPUT_BUCKET_RASTER}
       OUTPUT_BUCKET_VECTOR: ${OUTPUT_BUCKET_VECTOR}
-      MNT_BASE: ${MNT_BASE}
+      GCS_MNT_BASE: ${GCS_MNT_BASE}
 
   cogmaker:
     build:
@@ -19,13 +21,16 @@ services:
       args:
         BASE_IMAGE: ${BASE_IMAGE}
     volumes:
-      - ./CogMaker:/app
+      # - ./CogMaker:/app
       - ${GCP_CREDS}:/root/.config/gcloud
       - ${DATA_FOLDER}:/app/data
-    ports:
-      - "3002:8080"
+    expose:
+      - "8080"
+    # ports:
+    #   - "3002:8080"
     environment:
       OUTPUT_BUCKET: ${OUTPUT_BUCKET_RASTER}
+    # entrypoint: python3 app.py
 
   cog2pt:
     privileged: true
@@ -34,29 +39,28 @@ services:
       args:
         BASE_IMAGE: ${BASE_IMAGE}
     volumes:
-      - ./Cog2Point:/app
+      # - ./Cog2Point:/app
       - ${GCP_CREDS}:/root/.config/gcloud
       - ${DATA_FOLDER}:/app/data
-    ports:
-      - "3003:8080"
+    expose:
+      - "8080"
+    # ports:
+    #   - "3003:8080"
     environment:
-      MNT_BUCKETS: cogmaker-output-staging;geopmaker-output-staging
-      MNT_BASE: ${MNT_BASE}
-    cap_add:
-      - SYS_ADMIN
-    devices:
-      - /dev/fuse
+      MNT_BASE: ${MOUNT_PATH}
 
   geoparquet2pmtiles:
     privileged: true
     build:
       context: ./Geoparquet2Pmtiles
     volumes:
-      - ./Geoparquet2Pmtiles:/app
+      # - ./Geoparquet2Pmtiles:/app
       - ${GCP_CREDS}:/root/.config/gcloud
       - ${DATA_FOLDER}:/app/data
-    ports:
-      - "3004:8080"
+    expose:
+      - "8080"
+    # ports:
+    #   - "3004:8080"
     environment:
       OUTPUT_BUCKET: ${OUTPUT_BUCKET_PMTILES}
   
@@ -64,22 +68,71 @@ services:
     build:
       context: ./ExpressGateway
     volumes:
-      - ./ExpressGateway:/app
+      # - ./ExpressGateway:/app
+      - ${SSL_DIR}:/app/ssl
     ports:
       - "3000:8080"
 
   trigger:
     build:
       context: ./Trigger
-    entrypoint: "python3 app.py"
+    # entrypoint: "python3 app.py"
     volumes:
-      - ./Trigger:/app
+      # - ./Trigger:/app
       - ${DATA_FOLDER}:/app/data
-    ports:
-      - "443:8080"
+    expose:
+      - "8080"
+    # ports:
+    #   - "3005:8080"
     environment: 
       HOST: ${HOST}
-    
+      MOUNT_PATH: ${MOUNT_PATH}
+      OUTPUT_BUCKET_PMTILES: ${OUTPUT_BUCKET_PMTILES}
 
-    
+  mosaic:
+    build:
+      context: ./Mosaic
+    volumes:
+      # - ./Mosaic:/app
+      - ${DATA_FOLDER}:/app/data
+    expose:
+      - "8080"
+    # ports:
+    #   - "3006:8080"
+    environment: 
+      MOUNT_PATH: ${MOUNT_PATH}
+
+  summarystats:
+    build:
+      context: ./SummaryStats
+    volumes:
+      # - ./SummaryStats:/app
+      - ${DATA_FOLDER}:/app/data
+    expose:
+      - "8080"
+    # ports:
+    #   - "3007:8080"
+    environment: 
+      MOUNT_PATH: ${MOUNT_PATH}
+    entrypoint: python3 app.py
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "443:443"
+    depends_on:
+      - express_gateway
+    volumes:
+      - ${SSL_DIR}:/etc/nginx/certs
+
+  redis:
+    image: redis/redis-stack:latest
+    ports:
+      # - 6379:6379
+      - 8001:8001
+    volumes:
+      - /RedisData:/data
+    environment:
+      REDIS_ARGS: --save 60 1000 --appendonly yes
+
 

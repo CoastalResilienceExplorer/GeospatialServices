@@ -12,8 +12,13 @@ import rioxarray as rxr
 import xarray as xr
 from utils.datastore import add_entity, get_managed_assets
 from utils.gcs import download_blob, upload_blob, list_blobs
+from utils.dataset import compressRaster
+
 import json
 import zarr
+from glob import glob
+
+import asyncio, concurrent
 
 from rioxarray.merge import merge_arrays, merge_datasets
 
@@ -66,20 +71,8 @@ def build_cog():
     data = rxr.open_rasterio(
         io.BytesIO(request.files['data'].read())
     ).isel(band=0)
-    data.rio.to_raster(tmp)
-    print(data.attrs)
-
-    to_cog(tmp, tmp_cog)
-    upload_blob(os.environ['OUTPUT_BUCKET'], tmp_cog, request.form['name'])
-    add_entity(
-        'ManagedCOG', 
-        {
-            "name": request.form['name'], 
-            "bucket": os.environ["OUTPUT_BUCKET"],
-            "attrs": str(data.attrs),
-            "crs": data.rio.crs.to_proj4()
-        })
-    logging.info('Done')
+    compressRaster(data, request.form['output'])
+    
     return (
         f"Completed",
         200,
@@ -128,16 +121,12 @@ def build_zarr():
         return ("complete", 200)
     
     else:
-        path = request.form['local_directory']
-        logging.info(path)
-        blobs = os.listdir(path)
+        blobs = glob(os.path.join(request.form['local_directory'], "*.tif"))
         logging.info(blobs)
 
         rasters = [
             {
-                'ds': rxr.open_rasterio(
-                    os.path.join(path, b)
-                ).isel(band=0), 
+                'ds': rxr.open_rasterio(b).isel(band=0), 
                 'id': b.split('/')[-1].split('.')[0]
             } for b in blobs
         ]
@@ -146,20 +135,52 @@ def build_zarr():
             for d in rasters
         ]
         data = xr.merge(data).chunk(500).assign_attrs(crs=str(rasters[0]['ds'].rio.crs))
-        data.to_zarr(os.path.join(path, request.form["output"]))
+        data.to_zarr(os.path.join(request.form['local_directory'], request.form["output"]))
         return ("complete", 200)
 
 
+@app.route("/zarr_to_netcdf/", methods=["POST"])
+def zarr_to_netcdf():
+    zarr_dataset = xr.open_zarr(request.form['zarr'])
+    compression_settings = {
+        var: {
+            'zlib': True,
+            'complevel': 5  # Compression level (1-9)
+        } for var in zarr_dataset.data_vars
+    }
+    logging.info(zarr_dataset.rio)
+    zarr_dataset.sortby(["y", "x"])
+    zarr_dataset.rio.write_grid_mapping(inplace=True)
+    zarr_dataset.rio.write_crs(zarr_dataset.rio.crs, inplace=True)
+    zarr_dataset.to_netcdf(request.form['output'], encoding=compression_settings, engine='h5netcdf')
+    return ("complete", 200)
 
-@app.route("/get_managed_assets/", methods=["GET"])
-def api_get_managed_assets(
-    entity_type: str = "ManagedCOG"
-):
-    assets = get_managed_assets(entity_type)
-    return (
-        assets,
-        200,
-    )
+
+@app.route("/zarr_to_tiff/", methods=["POST"])
+async def zarr_to_tiff():
+    zarr_dataset = xr.open_zarr(request.form['zarr'])
+    logging.info(zarr_dataset.data_vars)
+
+    loop = asyncio.get_running_loop()
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+
+        tasks = []
+        for var in zarr_dataset.data_vars:
+            if var in ["spatial_ref"]:
+                continue
+            ds = zarr_dataset[var]
+            try: 
+                del ds.attrs['grid_mapping']
+            except:
+                pass
+            ds.rio.write_grid_mapping(inplace=True)
+            logging.info(ds.rio.crs)
+            ds.rio.write_crs(zarr_dataset.rio.crs, inplace=True)
+            tasks.append(loop.run_in_executor(executor, compressRaster, ds, os.path.join(request.form['output'], f'{var}.tif')))
+        responses = await asyncio.gather(*tasks)
+        
+    return ("complete", 200)
+
 
 
 @app.route("/", methods=["POST"])
