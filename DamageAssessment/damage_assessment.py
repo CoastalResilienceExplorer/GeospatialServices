@@ -25,9 +25,6 @@ GADM = "gs://supporting-data2/gadm_country_bounds.parquet"
 # COUNTRY = "Dominican Republic"
 
 
-
-
-
 def main(flooding: xr.Dataset | xr.DataArray, window=0, population_min=5):
     init_crs = flooding.rio.crs
     buildings = rxr.open_rasterio(
@@ -120,14 +117,11 @@ def exposure(flooding: xr.Dataset | xr.DataArray):
 
 
 def AEV(ds, rps, keys, id, year_of_zero_damage=1.):
-    logging.info(keys)
-    logging.info(ds[keys[0]].shape)
     values = np.nan_to_num(
         np.array([
             ds[k].to_numpy() for k in keys
         ])
     )
-    logging.info(values.shape)
 
     rps      = np.array(rps)
     values  = np.array(values)
@@ -160,7 +154,6 @@ def AEV(ds, rps, keys, id, year_of_zero_damage=1.):
         aev,
         keep_attrs=True
     ).rename(id)
-    logging.info(to_return.shape)
     return to_return
 
 

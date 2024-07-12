@@ -32,10 +32,10 @@ from utils.setup import get_paths, initialize_paths
 
 app = Flask(__name__)
 
-CLEAN_SLATE = True
+CLEAN_SLATE = False
 TASKS = [
-    "SUBMITTED",
-    "COG",
+    # "SUBMITTED",
+    # "COG",
     "DAMAGES",
     "EXPOSURE",
     "POPULATION",
@@ -63,6 +63,7 @@ if CLEAN_SLATE:
 DATA_OUTPUTS = [
     'flooding',
     'damages',
+    'damages_scaled',
     'exposure',
     'population'
 ]
@@ -117,43 +118,37 @@ async def trigger():
         "COG": {
             "runner": async_runner,
             "args": (cog_generator(paths), SUBMISSION_ID, "COG", assert_done),
-            "kwargs": {"tries": 4, "workers": 32}
+            "kwargs": {"tries": 4, "workers": 8}
         },
 
         "DAMAGES": {
             "runner": async_runner,
             "args": (damages_generator(paths), SUBMISSION_ID, "DAMAGES", assert_done),
-            "kwargs": {"tries": 4, "workers": 16}
+            "kwargs": {"tries": 4, "workers": 1}
         },
 
         "EXPOSURE": {
             "runner": async_runner,
             "args": (exposure_generator(paths), SUBMISSION_ID, "EXPOSURE", assert_done),
-            "kwargs": {"tries": 4, "workers": 16}
+            "kwargs": {"tries": 4, "workers": 1}
         },
 
         "POPULATION": {
             "runner": async_runner,
             "args": (population_generator(paths), SUBMISSION_ID, "POPULATION", assert_done),
-            "kwargs": {"tries": 4, "workers": 10}
+            "kwargs": {"tries": 2, "workers": 1}
         },
-
-        # "ZARR_BUILD": {
-        #     "runner": async_runner,
-        #     "args": (zarr_build_generator(DATA_OUTPUTS, paths), SUBMISSION_ID, "ZARR_BUILD", assert_done),
-        #     "kwargs": {"tries": 4, "workers": 4}
-        # },
 
         "AEV_DAMAGES": {
             "runner": async_runner,
             "args": (aev_generator(request.form['template'], 'AEV-Econ', request.form['rps'], paths, 'damages'), SUBMISSION_ID, "AEV_DAMAGES", assert_done),
-            "kwargs": {"tries": 8, "workers": 1}
+            "kwargs": {"tries": 2, "workers": 1}
         },
 
         "AEV_POPULATION": {
             "runner": async_runner,
             "args": (aev_generator(request.form['template'], 'AEV-Pop', request.form['rps'], paths, 'population'), SUBMISSION_ID, "AEV_POPULATION", assert_done),
-            "kwargs": {"tries": 8, "workers": 1}
+            "kwargs": {"tries": 2, "workers": 1}
         },
         
         "APPLY_DOLLAR_VALUES": {
@@ -204,8 +199,10 @@ def backfill():
     projects = [i for i in os.listdir(os.getenv("MOUNT_PATH")) if i != 'submissions']
 
     for p in projects:
-        keys = ["DOM_01"]
-        # keys = os.listdir(os.path.join(os.getenv("MOUNT_PATH"), p))
+        if p != "NBS_ADAPTS":
+            continue
+        # keys = ["DOM_01"]
+        keys = os.listdir(os.path.join(os.getenv("MOUNT_PATH"), p))
         for k in keys:
             files = {'data': open(os.path.join(os.getenv("MOUNT_PATH"), 'submissions', f'{p}_{k}.zip'), 'rb')}
             response = requests.post(

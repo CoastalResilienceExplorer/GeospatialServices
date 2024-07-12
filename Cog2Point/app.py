@@ -26,8 +26,9 @@ gpd.read_parquet = gpd_read_parquet
 sample_geojson = json.load(open('geojson_base.json'))
 
 # GEOM_TYPE="SQUARES"
-GEOM_TYPE="SQUIRCLE"
+# GEOM_TYPE="SQUIRCLE"
 # GEOM_TYPE="POINTS"
+GEOM_TYPE="BEVELED_SQUARES"
 
 
 def generate_squircle(X, Y, r, shrink=0.9, num_points=100):
@@ -54,6 +55,30 @@ def generate_squircle(X, Y, r, shrink=0.9, num_points=100):
     return [points]
 
 
+def generate_beveled_squares(X, Y, r, shrink=0.9, bevel_shrink=0.7):
+    """
+    Generate points of a squircle polygon with a specific border-radius.
+
+    Parameters:
+    r (float): Border-radius of the squircle.
+    num_points (int): Number of points to generate for the polygon.
+
+    Returns:
+    List of tuples: Points of the squircle polygon.
+    """
+    return [[
+        [X - (r * shrink)/2., Y + (r * bevel_shrink)/2.], # Top Left
+        [X - (r * bevel_shrink)/2., Y + (r * shrink)/2.],
+        [X + (r * bevel_shrink)/2., Y + (r * shrink)/2.], # Top Right
+        [X + (r * shrink)/2., Y + (r * bevel_shrink)/2.], 
+        [X + (r * shrink)/2., Y - (r * bevel_shrink)/2.], # Bottom Right
+        [X + (r * bevel_shrink)/2., Y - (r * shrink)/2.], 
+        [X - (r * bevel_shrink)/2., Y - (r * shrink)/2.], 
+        [X - (r * shrink)/2., Y - (r * bevel_shrink)/2.], 
+        [X - (r * shrink)/2., Y + (r * bevel_shrink)/2.]
+    ]]
+
+
 def vector_points(da, res):
     da = da.to_dict()
     gj = sample_geojson
@@ -65,6 +90,7 @@ def vector_points(da, res):
     if GEOM_TYPE == "POINTS":
         for idx, coord in enumerate(coords):
             properties = {k: data[k][idx] for k in data.keys()}
+            properties = {**properties, "x": coord[0], "y": coord[1]}
             features_buff.append({
                 "type": "Feature",
                 "geometry": {
@@ -78,6 +104,7 @@ def vector_points(da, res):
     elif GEOM_TYPE == "SQUARES":
         for idx, coord in enumerate(coords):
             properties = {k: data[k][idx] for k in data.keys()}
+            properties = {**properties, "x": coord[0], "y": coord[1]}
             features_buff.append({
                 "type": "Feature",
                 "geometry": {
@@ -97,11 +124,27 @@ def vector_points(da, res):
     elif GEOM_TYPE == "SQUIRCLE":
         for idx, coord in enumerate(coords):
             properties = {k: data[k][idx] for k in data.keys()}
+            properties = {**properties, "x": coord[0], "y": coord[1]}
             features_buff.append({
                 "type": "Feature",
                 "geometry": {
                     "type": "Polygon",
                     "coordinates": generate_squircle(coord[0], coord[1], res)
+                },
+                "properties": properties
+            })
+        gj['features'] = features_buff
+        return gj
+    
+    elif GEOM_TYPE == "BEVELED_SQUARES":
+        for idx, coord in enumerate(coords):
+            properties = {k: data[k][idx] for k in data.keys()}
+            properties = {**properties, "x": coord[0], "y": coord[1]}
+            features_buff.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": generate_beveled_squares(coord[0], coord[1], res)
                 },
                 "properties": properties
             })
@@ -169,6 +212,7 @@ def zarr2pt():
     xmin, xmax = np.min(raster.x).values, np.max(raster.x).values
     ymin, ymax = np.min(raster.y).values, np.max(raster.y).values
     xstep, ystep = [math.ceil(i * 1000) for i in res]
+    raster.rio.write_crs(raster.rio.crs, inplace=True)
     for x in np.arange(xmin, xmax, xstep):
         for y in np.arange(ymin, ymax, ystep):
             with raster.rio.clip_box(

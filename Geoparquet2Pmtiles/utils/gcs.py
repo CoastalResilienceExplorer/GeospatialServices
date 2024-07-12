@@ -61,6 +61,7 @@ def upload_blob(bucket_name, source_file_name, destination_blob_name):
     logging.info("Uploading.")
     blob.upload_from_filename(
         source_file_name,
+        timeout=3600
         # if_generation_match=generation_match_precondition
     )
 

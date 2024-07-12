@@ -18,4 +18,4 @@ ENV GS_ACCESS_KEY_ID=GOOG1EAWTN2EVMJWVO3ES5DLNZ6JKJ3KGK5X7ID7WXN7CVKDL47ST37B5RK
 
 # ENTRYPOINT [ "python3", "app.py" ]
 ENTRYPOINT [ "gunicorn" ]
-CMD [ "app:app", "--bind", "0.0.0.0:8080", "--workers", "20", "--max-requests", "5", "--timeout", "3600" ]
+CMD [ "app:app", "--bind", "0.0.0.0:8080", "--workers", "5", "--max-requests", "1", "--timeout", "3600" ]
