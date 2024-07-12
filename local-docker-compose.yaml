@@ -1,15 +1,12 @@
 services:
   damage_assessment:
+    container_name: damage_assessment_${ENV}
     build:
       context: ./DamageAssessment
     volumes:
       - ./DamageAssessment:/app
       - ${GCP_CREDS}:/root/.config/gcloud
       - ${DATA_FOLDER}:/app/data
-    # expose:
-    #   - "8080"
-    # ports:
-    #   - "3001:8080"
     environment:
       OUTPUT_BUCKET_RASTER: ${OUTPUT_BUCKET_RASTER}
       OUTPUT_BUCKET_VECTOR: ${OUTPUT_BUCKET_VECTOR}
@@ -23,37 +20,31 @@ services:
     entrypoint: python3 app.py
 
   cogmaker:
+    container_name: cogmaker_${ENV}
     build:
       context: ./CogMaker
       args:
         BASE_IMAGE: ${BASE_IMAGE}
-    # expose:
-    #   - "8080"
     volumes:
       - ./CogMaker:/app
       - ${GCP_CREDS}:/root/.config/gcloud
       - ${DATA_FOLDER}:/app/data
-    # ports:
-    #   - "3002:8080"
     environment:
       OUTPUT_BUCKET: ${OUTPUT_BUCKET_RASTER}
     platform: linux/amd64
-    # entrypoint: python3 app.py
+    entrypoint: python3 app.py
 
   cog2pt:
+    container_name: cog2pt_${ENV}
     privileged: true
     build:
       context: ./Cog2Point
       args:
         BASE_IMAGE: ${BASE_IMAGE}
-    # expose:
-    #   - "8080"
     volumes:
       - ./Cog2Point:/app
       - ${GCP_CREDS}:/root/.config/gcloud
       - ${DATA_FOLDER}:/app/data
-    # ports:
-    #   - "3003:8080"
     environment:
       MNT_BASE: ${MOUNT_PATH}
     cap_add:
@@ -62,21 +53,19 @@ services:
       - /dev/fuse
 
   geoparquet2pmtiles:
+    container_name: geoparquet2pmtiles_${ENV}
     privileged: true
     build:
       context: ./Geoparquet2Pmtiles
-    # expose:
-    #   - "8080"
     volumes:
       - ./Geoparquet2Pmtiles:/app
       - ${GCP_CREDS}:/root/.config/gcloud
       - ${DATA_FOLDER}:/app/data
-    # ports:
-    #   - "3004:8080"
     environment:
       OUTPUT_BUCKET: ${OUTPUT_BUCKET_PMTILES}
   
   express_gateway:
+    container_name: express_gateway_${ENV}
     build:
       context: ./ExpressGateway
     volumes:
@@ -90,6 +79,7 @@ services:
     platform: linux/amd64
 
   trigger:
+    container_name: trigger_${ENV}
     build:
       context: ./Trigger
     entrypoint: "python3 app.py"
@@ -106,6 +96,7 @@ services:
       OUTPUT_BUCKET_PMTILES: ${OUTPUT_BUCKET_PMTILES}
 
   mosaic:
+    container_name: mosaic_${ENV}
     build:
       context: ./Mosaic
     volumes:
@@ -143,6 +134,7 @@ services:
   #     - ${SSL_DIR}:/etc/nginx/certs
 
   redis:
+    container_name: redis_${ENV}
     image: redis/redis-stack:latest
     ports:
       # - 6379:6379
@@ -153,6 +145,7 @@ services:
       REDIS_ARGS: --save 60 1000 --appendonly yes
 
   summarystats:
+    container_name: summarystats_${ENV}
     build:
       context: ./SummaryStats
     volumes:

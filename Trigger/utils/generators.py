@@ -150,6 +150,10 @@ def aev_generator(template, id_prefix, rps, paths, data_type):
 
     def f():
         scenario_parse = [i.split('/')[-1].split('.')[0].split('_') for i in glob(os.path.join(paths['damages'], '*.tif'))]
+        logging.info(scenario_parse)
+        scenario_parse = [i for i in scenario_parse if "AEV-Econ" not in i and "AEV-Pop" not in i]
+        logging.info(scenario_parse)
+        
         scenarios = dict()
         for idx, k in enumerate(template.split('_')):
             if "$" in k:
